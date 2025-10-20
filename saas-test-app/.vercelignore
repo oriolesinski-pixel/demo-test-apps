@@ -1,0 +1,19 @@
+# SQL files (Supabase schema and scripts - not needed for deployment)
+*.sql
+
+# Scripts directory
+scripts/
+
+# Documentation files
+*.md
+DEPLOYMENT.md
+FINAL_CHECKLIST.md
+VERCEL_SETUP.md
+
+# Local development files
+.env.local
+.env*.local
+
+# Vercel build artifacts
+.vercel/
+
