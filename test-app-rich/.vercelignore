@@ -1,0 +1,16 @@
+# Ignore backend directory (not needed for Next.js deployment)
+backend/
+
+# Ignore scripts
+scripts/
+
+# Ignore SQL files
+*.sql
+
+# Ignore local development files
+.env.local
+.env*.local
+
+# Ignore start script
+start.sh
+
