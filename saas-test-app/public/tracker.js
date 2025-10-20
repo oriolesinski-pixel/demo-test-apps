@@ -115,7 +115,7 @@
       // This tracker connects to the analytics service.
       // Each app is identified by its unique app_key.
       this.config = {
-        appKey: 'demo-test-apps-2025-10-20-1dm43hjiuwo',
+        appKey: 'demo-test-apps-2025-10-20-nmhaw2ptzym',
         endpoint: 'https://analytics-service-production-0f0c.up.railway.app/ingest/analytics',
         batchSize: 10,
         flushInterval: 10000  // Reduced to 10 seconds for faster event delivery
@@ -173,244 +173,343 @@
       this.componentDetectors = [
         {
             name: 'CheckoutPlanSelector',
-            type: 'link',
-            pattern_type: 'navigation',
-            selectors: ["a[href*='/checkout?plan=']","a[href*='cycle=']"],
-            purpose: 'Navigate to checkout with plan',
-            contextNeeded: ["plan","cycle","source_page"],
-            context_collection: {"strategy":"global_context","scope_selector":"body","fields":[{"field_name":"plan","selector":"a[href*='plan=']","extraction_method":"data-attribute","data_type":"string","attribute_name":"href","required":true,"description":"Selected plan type","field_purpose":"preference"},{"field_name":"billing_cycle","selector":"a[href*='cycle=']","extraction_method":"data-attribute","data_type":"string","attribute_name":"href","required":true,"description":"Monthly or annual billing","field_purpose":"preference"}],"state_tracking":{"track_previous_value":false,"track_change_delta":false,"track_timing":false},"fallback_sources":["searchParams"]},
-            relationships: {"triggers":["pricing_page_view"],"affects":["checkout_flow"],"depends_on":["plan_selection"]}
+            type: 'select_dropdown',
+            pattern_type: 'dropdown_change',
+            selectors: ["[data-plan-selector]","select[name='plan']"],
+            purpose: 'Select subscription plan',
+            contextNeeded: ["plan","cycle","previous_plan","price"],
+            context_collection: {"strategy":"global_context","scope_selector":"body","fields":[{"field_name":"selected_plan","selector":"[data-plan-selector]","extraction_method":"value","data_type":"string","required":true,"description":"Selected plan type","field_purpose":"preference"},{"field_name":"billing_cycle","selector":"[data-cycle-selector]","extraction_method":"value","data_type":"string","required":true,"description":"Monthly or annual billing","field_purpose":"preference"}],"state_tracking":{"track_previous_value":true,"track_change_delta":false,"track_timing":false}},
+            relationships: {"triggers":["url_param_change"],"affects":["checkout_total","payment_form"],"depends_on":["pricing_page_selection"]}
         },
 
         {
-            name: 'CheckoutStepContinue',
+            name: 'CheckoutContinueButton',
             type: 'button',
             pattern_type: 'multi_step_flow',
-            selectors: ["button[type='button']"],
-            purpose: 'Continue to payment step',
+            selectors: ["button[data-action='continue-payment']"],
+            purpose: 'Proceed to payment step',
             contextNeeded: ["step","plan","cycle","amount"],
-            context_collection: {"strategy":"component_props","scope_selector":"form","fields":[{"field_name":"current_step","selector":"body","extraction_method":"data-attribute","data_type":"number","required":true,"description":"Current checkout step","field_purpose":"metadata"},{"field_name":"plan","selector":"body","extraction_method":"data-attribute","data_type":"string","required":true,"description":"Selected plan","field_purpose":"preference"},{"field_name":"billing_cycle","selector":"body","extraction_method":"data-attribute","data_type":"string","required":true,"description":"Billing frequency","field_purpose":"preference"}],"state_tracking":{"track_previous_value":true,"track_change_delta":false,"track_timing":true},"fallback_sources":["searchParams"]},
-            relationships: {"triggers":["step_1_complete"],"affects":["step_2_display"],"depends_on":["plan_selection"]}
+            context_collection: {"strategy":"accumulated_state","scope_selector":"form","fields":[{"field_name":"current_step","selector":"[data-step]","extraction_method":"data-attribute","data_type":"number","attribute_name":"data-step","required":true,"description":"Current checkout step","field_purpose":"metadata"},{"field_name":"plan_selected","selector":"body","extraction_method":"data-attribute","data_type":"string","required":true,"description":"Selected plan from URL","field_purpose":"preference"},{"field_name":"total_amount","selector":"[data-total]","extraction_method":"textContent","data_type":"number","required":true,"description":"Total checkout amount","field_purpose":"metadata"}],"state_tracking":{"track_previous_value":false,"track_change_delta":false,"track_timing":true}},
+            relationships: {"triggers":["step_change"],"affects":["payment_form_visibility"],"depends_on":["plan_selection"]}
         },
 
         {
-            name: 'CheckoutPaymentForm',
-            type: 'form',
+            name: 'PaymentCardNumberInput',
+            type: 'input',
+            pattern_type: 'form_field_focus',
+            selectors: ["input[name='cardNumber']","#card-number"],
+            purpose: 'Enter credit card number',
+            contextNeeded: ["field_completed","validation_status"],
+            context_collection: {"strategy":"form_state","scope_selector":"form#checkout-form","fields":[{"field_name":"card_number_completed","selector":"input[name='cardNumber']","extraction_method":"value","data_type":"boolean","required":true,"description":"Card number field has value","field_purpose":"pci_protected","anonymize":true}],"state_tracking":{"track_previous_value":false,"track_change_delta":false,"track_timing":false}},
+            relationships: {"triggers":["user_input"],"affects":["form_validation"],"depends_on":["checkout_step_2"]}
+        },
+
+        {
+            name: 'PaymentExpiryInput',
+            type: 'input',
+            pattern_type: 'form_field_focus',
+            selectors: ["input[name='expiry']","#card-expiry"],
+            purpose: 'Enter card expiry date',
+            contextNeeded: ["field_completed"],
+            context_collection: {"strategy":"form_state","scope_selector":"form#checkout-form","fields":[{"field_name":"expiry_completed","selector":"input[name='expiry']","extraction_method":"value","data_type":"boolean","required":true,"description":"Expiry field has value","field_purpose":"pci_protected","anonymize":true}],"state_tracking":{"track_previous_value":false,"track_change_delta":false,"track_timing":false}},
+            relationships: {"triggers":["user_input"],"affects":["form_validation"],"depends_on":["checkout_step_2"]}
+        },
+
+        {
+            name: 'PaymentCVVInput',
+            type: 'input',
+            pattern_type: 'form_field_focus',
+            selectors: ["input[name='cvv']","#card-cvv"],
+            purpose: 'Enter card CVV',
+            contextNeeded: ["field_completed"],
+            context_collection: {"strategy":"form_state","scope_selector":"form#checkout-form","fields":[{"field_name":"cvv_completed","selector":"input[name='cvv']","extraction_method":"value","data_type":"boolean","required":true,"description":"CVV field has value","field_purpose":"pci_protected","anonymize":true}],"state_tracking":{"track_previous_value":false,"track_change_delta":false,"track_timing":false}},
+            relationships: {"triggers":["user_input"],"affects":["form_validation"],"depends_on":["checkout_step_2"]}
+        },
+
+        {
+            name: 'PaymentCardholderInput',
+            type: 'input',
+            pattern_type: 'form_field_focus',
+            selectors: ["input[name='cardholderName']"],
+            purpose: 'Enter cardholder name',
+            contextNeeded: ["field_completed"],
+            context_collection: {"strategy":"form_state","scope_selector":"form#checkout-form","fields":[{"field_name":"cardholder_completed","selector":"input[name='cardholderName']","extraction_method":"value","data_type":"boolean","required":true,"description":"Cardholder name entered","field_purpose":"pii","anonymize":true}],"state_tracking":{"track_previous_value":false,"track_change_delta":false,"track_timing":false}},
+            relationships: {"triggers":["user_input"],"affects":["form_validation"],"depends_on":["checkout_step_2"]}
+        },
+
+        {
+            name: 'BillingAddressInput',
+            type: 'input',
+            pattern_type: 'form_field_focus',
+            selectors: ["input[name='billingAddress']"],
+            purpose: 'Enter billing address',
+            contextNeeded: ["field_completed"],
+            context_collection: {"strategy":"form_state","scope_selector":"form#checkout-form","fields":[{"field_name":"billing_address_completed","selector":"input[name='billingAddress']","extraction_method":"value","data_type":"boolean","required":true,"description":"Billing address entered","field_purpose":"pii","anonymize":true}],"state_tracking":{"track_previous_value":false,"track_change_delta":false,"track_timing":false}},
+            relationships: {"triggers":["user_input"],"affects":["form_validation"],"depends_on":["checkout_step_2"]}
+        },
+
+        {
+            name: 'CheckoutSubmitButton',
+            type: 'button',
             pattern_type: 'form_submission',
-            selectors: ["form"],
-            purpose: 'Submit payment details',
-            contextNeeded: ["card_fields_completed","billing_info_completed","plan","amount"],
-            context_collection: {"strategy":"form_state","scope_selector":"form","fields":[{"field_name":"card_number_completed","selector":"input[name='cardNumber']","extraction_method":"value","data_type":"boolean","required":true,"description":"Card number field filled","field_purpose":"pci_protected","anonymize":true},{"field_name":"expiry_completed","selector":"input[name='expiry']","extraction_method":"value","data_type":"boolean","required":true,"description":"Expiry date filled","field_purpose":"pci_protected","anonymize":true},{"field_name":"cvv_completed","selector":"input[name='cvv']","extraction_method":"value","data_type":"boolean","required":true,"description":"CVV filled","field_purpose":"pci_protected","anonymize":true},{"field_name":"cardholder_name","selector":"input[name='cardholderName']","extraction_method":"value","data_type":"string","required":true,"description":"Name on card","field_purpose":"pii","anonymize":true},{"field_name":"billing_address_completed","selector":"input[name='billingAddress']","extraction_method":"value","data_type":"boolean","required":true,"description":"Address filled","field_purpose":"pii","anonymize":true},{"field_name":"plan","selector":"body","extraction_method":"data-attribute","data_type":"string","required":true,"description":"Selected plan","field_purpose":"metadata"},{"field_name":"total_amount","selector":"body","extraction_method":"data-attribute","data_type":"number","required":true,"description":"Total charge amount","field_purpose":"metadata"}],"state_tracking":{"track_previous_value":false,"track_change_delta":false,"track_timing":true},"fallback_sources":[]},
-            relationships: {"triggers":["payment_submit"],"affects":["subscription_created"],"depends_on":["checkout_step_2"]}
+            selectors: ["button[type='submit']","button[data-action='complete-checkout']"],
+            purpose: 'Complete payment and subscription',
+            contextNeeded: ["plan","cycle","amount","payment_fields_completed"],
+            context_collection: {"strategy":"form_state","scope_selector":"form#checkout-form","fields":[{"field_name":"payment_fields_completed","selector":"form#checkout-form input","extraction_method":"count","data_type":"array","required":true,"description":"List of completed payment fields","field_purpose":"metadata"},{"field_name":"plan","selector":"body","extraction_method":"data-attribute","data_type":"string","required":true,"description":"Selected subscription plan","field_purpose":"preference"},{"field_name":"billing_cycle","selector":"body","extraction_method":"data-attribute","data_type":"string","required":true,"description":"Billing cycle selected","field_purpose":"preference"},{"field_name":"total_amount","selector":"[data-total]","extraction_method":"textContent","data_type":"number","required":true,"description":"Total payment amount","field_purpose":"metadata"}],"state_tracking":{"track_previous_value":false,"track_change_delta":false,"track_timing":true}},
+            relationships: {"triggers":["form_submit"],"affects":["subscription_status","redirect_to_success"],"depends_on":["payment_form_validation"]}
         },
 
         {
-            name: 'CheckoutSuccessViewDashboard',
+            name: 'CheckoutBackButton',
             type: 'button',
             pattern_type: 'navigation',
-            selectors: ["a[href='/dashboard']","button"],
-            purpose: 'Navigate to dashboard after purchase',
-            contextNeeded: ["purchase_completed","plan"],
-            context_collection: {"strategy":"global_context","scope_selector":"body","fields":[{"field_name":"conversion_completed","selector":"body","extraction_method":"data-attribute","data_type":"boolean","required":true,"description":"Purchase successful","field_purpose":"metadata"}],"state_tracking":{"track_previous_value":false,"track_change_delta":false,"track_timing":false},"fallback_sources":[]},
-            relationships: {"triggers":["success_page_view"],"affects":["dashboard_entry"],"depends_on":["payment_success"]}
+            selectors: ["button[data-action='back']","a[href='/pricing']"],
+            purpose: 'Return to pricing page',
+            contextNeeded: ["current_step","form_data_entered"],
+            context_collection: {"strategy":"accumulated_state","scope_selector":"form","fields":[{"field_name":"checkout_step","selector":"[data-step]","extraction_method":"data-attribute","data_type":"number","attribute_name":"data-step","required":true,"description":"Step user is leaving","field_purpose":"metadata"},{"field_name":"had_form_data","selector":"form input","extraction_method":"value","data_type":"boolean","required":false,"description":"User had entered data","field_purpose":"metadata"}],"state_tracking":{"track_previous_value":false,"track_change_delta":false,"track_timing":false}},
+            relationships: {"triggers":["user_click"],"affects":["navigation"],"depends_on":[]}
         },
 
         {
-            name: 'DashboardUpgradeButton',
+            name: 'SuccessPageCTAButton',
             type: 'button',
             pattern_type: 'navigation',
-            selectors: ["a[href='/pricing']","button.border-purple-200"],
-            purpose: 'Navigate to pricing page',
-            contextNeeded: ["source_page","current_plan"],
-            context_collection: {"strategy":"global_context","scope_selector":"body","fields":[{"field_name":"source_surface","selector":"body","extraction_method":"data-attribute","data_type":"string","required":true,"description":"Page where upgrade clicked","field_purpose":"metadata"}],"state_tracking":{"track_previous_value":false,"track_change_delta":false,"track_timing":false},"fallback_sources":["window.location.pathname"]},
-            relationships: {"triggers":["dashboard_view"],"affects":["pricing_page_view"],"depends_on":[]}
+            selectors: ["a[href='/dashboard']","button[data-action='go-dashboard']"],
+            purpose: 'Navigate to dashboard after upgrade',
+            contextNeeded: ["upgrade_completed"],
+            context_collection: {"strategy":"global_context","scope_selector":"body","fields":[{"field_name":"upgrade_success","selector":"body","extraction_method":"data-attribute","data_type":"boolean","required":true,"description":"Upgrade completed successfully","field_purpose":"metadata"}],"state_tracking":{"track_previous_value":false,"track_change_delta":false,"track_timing":false}},
+            relationships: {"triggers":["user_click"],"affects":["navigation"],"depends_on":["successful_checkout"]}
         },
 
         {
             name: 'NewProjectButton',
             type: 'button',
             pattern_type: 'navigation',
-            selectors: ["a[href='/dashboard/projects/new']","button"],
+            selectors: ["a[href='/dashboard/projects/new']","button[data-action='new-project']"],
             purpose: 'Navigate to create project',
-            contextNeeded: ["current_project_count","plan"],
-            context_collection: {"strategy":"global_context","scope_selector":"body","fields":[{"field_name":"current_project_count","selector":"body","extraction_method":"data-attribute","data_type":"number","required":false,"description":"Existing project count","field_purpose":"metadata"}],"state_tracking":{"track_previous_value":false,"track_change_delta":false,"track_timing":false},"fallback_sources":[]},
-            relationships: {"triggers":["dashboard_view"],"affects":["project_form_view"],"depends_on":[]}
+            contextNeeded: ["current_project_count"],
+            context_collection: {"strategy":"global_context","scope_selector":"body","fields":[{"field_name":"project_count","selector":"[data-project-count]","extraction_method":"textContent","data_type":"number","required":false,"description":"Current number of projects","field_purpose":"metadata"}],"state_tracking":{"track_previous_value":false,"track_change_delta":false,"track_timing":false}},
+            relationships: {"triggers":["user_click"],"affects":["navigation"],"depends_on":[]}
         },
 
         {
-            name: 'ProjectCreationForm',
-            type: 'form',
+            name: 'ProjectFormSubmit',
+            type: 'button',
             pattern_type: 'form_submission',
-            selectors: ["form"],
+            selectors: ["button[type='submit']","form button[data-action='create-project']"],
             purpose: 'Create new project',
-            contextNeeded: ["name","description","workspace_id"],
-            context_collection: {"strategy":"form_state","scope_selector":"form","fields":[{"field_name":"project_name","selector":"input[name='name']","extraction_method":"value","data_type":"string","required":true,"description":"Project name","field_purpose":"metadata"},{"field_name":"project_description","selector":"textarea[name='description']","extraction_method":"value","data_type":"string","required":false,"description":"Project description","field_purpose":"metadata"}],"state_tracking":{"track_previous_value":false,"track_change_delta":false,"track_timing":true},"fallback_sources":[]},
-            relationships: {"triggers":["form_submit"],"affects":["project_created"],"depends_on":["new_project_button"]}
-        },
-
-        {
-            name: 'PaywallModal',
-            type: 'modal_trigger',
-            pattern_type: 'modal_lifecycle',
-            selectors: [".paywall-modal"],
-            purpose: 'Show upgrade prompt at limit',
-            contextNeeded: ["limit_type","current_usage","limit_value"],
-            context_collection: {"strategy":"modal_scope","scope_selector":"[role='dialog']","fields":[{"field_name":"limit_context","selector":"body","extraction_method":"data-attribute","data_type":"string","required":true,"description":"What limit was hit","field_purpose":"metadata"},{"field_name":"current_usage","selector":"body","extraction_method":"data-attribute","data_type":"number","required":true,"description":"Current usage count","field_purpose":"metadata"},{"field_name":"limit_value","selector":"body","extraction_method":"data-attribute","data_type":"number","required":true,"description":"Maximum allowed","field_purpose":"metadata"}],"state_tracking":{"track_previous_value":false,"track_change_delta":false,"track_timing":true},"fallback_sources":[]},
-            relationships: {"triggers":["limit_reached"],"affects":["upgrade_consideration"],"depends_on":["project_creation_attempt"]}
-        },
-
-        {
-            name: 'ProjectCard',
-            type: 'link',
-            pattern_type: 'item_selection',
-            selectors: ["a[href*='/dashboard/projects/']"],
-            purpose: 'View project details',
-            contextNeeded: ["project_id","project_name","task_count"],
-            context_collection: {"strategy":"parent_data","scope_selector":"a[href*='/projects/']","fields":[{"field_name":"project_id","selector":"a","extraction_method":"data-attribute","data_type":"string","attribute_name":"href","required":true,"description":"Project identifier","field_purpose":"metadata"}],"state_tracking":{"track_previous_value":false,"track_change_delta":false,"track_timing":false},"fallback_sources":["href"]},
-            relationships: {"triggers":["projects_page_view"],"affects":["project_detail_view"],"depends_on":[]}
+            contextNeeded: ["project_name","description","workspace_id"],
+            context_collection: {"strategy":"form_state","scope_selector":"form","fields":[{"field_name":"project_name","selector":"input[name='name']","extraction_method":"value","data_type":"string","required":true,"description":"Project name entered","field_purpose":"metadata"},{"field_name":"has_description","selector":"textarea[name='description']","extraction_method":"value","data_type":"boolean","required":false,"description":"Description provided","field_purpose":"metadata"}],"state_tracking":{"track_previous_value":false,"track_change_delta":false,"track_timing":true}},
+            relationships: {"triggers":["form_submit"],"affects":["project_list","navigation"],"depends_on":["form_validation"]}
         },
 
         {
             name: 'CreateTaskButton',
             type: 'button',
-            pattern_type: 'modal_lifecycle',
-            selectors: ["button"],
+            pattern_type: 'modal_trigger',
+            selectors: ["button[data-action='create-task']"],
             purpose: 'Open task creation modal',
             contextNeeded: ["project_id"],
-            context_collection: {"strategy":"global_context","scope_selector":"body","fields":[{"field_name":"project_id","selector":"body","extraction_method":"data-attribute","data_type":"string","required":true,"description":"Parent project","field_purpose":"metadata"}],"state_tracking":{"track_previous_value":false,"track_change_delta":false,"track_timing":false},"fallback_sources":["window.location.pathname"]},
-            relationships: {"triggers":["project_view"],"affects":["task_modal_open"],"depends_on":[]}
+            context_collection: {"strategy":"parent_data","scope_selector":"[data-project-id]","fields":[{"field_name":"project_id","selector":"[data-project-id]","extraction_method":"data-attribute","data_type":"string","attribute_name":"data-project-id","required":true,"description":"Project context for task","field_purpose":"metadata"}],"state_tracking":{"track_previous_value":false,"track_change_delta":false,"track_timing":false}},
+            relationships: {"triggers":["modal_open"],"affects":["modal_visibility"],"depends_on":["project_context"]}
         },
 
         {
-            name: 'TaskCreationForm',
-            type: 'form',
+            name: 'TaskFormSubmit',
+            type: 'button',
             pattern_type: 'form_submission',
-            selectors: ["form"],
+            selectors: ["button[data-action='submit-task']","form[data-form='task'] button[type='submit']"],
             purpose: 'Create new task',
-            contextNeeded: ["title","description","priority","assigned_to","due_date","project_id"],
-            context_collection: {"strategy":"form_state","scope_selector":"form","fields":[{"field_name":"task_title","selector":"input[name='title']","extraction_method":"value","data_type":"string","required":true,"description":"Task title","field_purpose":"metadata"},{"field_name":"task_description","selector":"textarea[name='description']","extraction_method":"value","data_type":"string","required":false,"description":"Task description","field_purpose":"metadata"},{"field_name":"task_priority","selector":"select[name='priority']","extraction_method":"value","data_type":"string","required":true,"description":"Task priority level","field_purpose":"preference"},{"field_name":"assigned_to","selector":"select[name='assignedTo']","extraction_method":"value","data_type":"string","required":false,"description":"Assigned user ID","field_purpose":"metadata"},{"field_name":"due_date","selector":"input[name='dueDate']","extraction_method":"value","data_type":"string","required":false,"description":"Task due date","field_purpose":"metadata"}],"state_tracking":{"track_previous_value":false,"track_change_delta":false,"track_timing":true},"fallback_sources":[]},
-            relationships: {"triggers":["task_form_submit"],"affects":["task_created"],"depends_on":["create_task_button"]}
+            contextNeeded: ["task_title","priority","assigned_to","project_id"],
+            context_collection: {"strategy":"modal_scope","scope_selector":"[role='dialog']","fields":[{"field_name":"task_title","selector":"input[name='title']","extraction_method":"value","data_type":"string","required":true,"description":"Task title","field_purpose":"metadata"},{"field_name":"task_priority","selector":"select[name='priority']","extraction_method":"value","data_type":"string","required":true,"description":"Task priority level","field_purpose":"preference"},{"field_name":"assigned_to","selector":"select[name='assignedTo']","extraction_method":"value","data_type":"string","required":false,"description":"Assigned team member","field_purpose":"metadata"},{"field_name":"has_due_date","selector":"input[name='dueDate']","extraction_method":"value","data_type":"boolean","required":false,"description":"Due date set","field_purpose":"metadata"}],"state_tracking":{"track_previous_value":false,"track_change_delta":false,"track_timing":true}},
+            relationships: {"triggers":["form_submit","modal_close"],"affects":["task_list"],"depends_on":["project_context"]}
         },
 
         {
             name: 'TaskStatusDropdown',
             type: 'select_dropdown',
             pattern_type: 'toggle_state',
-            selectors: ["select"],
-            purpose: 'Change task status',
+            selectors: ["select[name='status']","[data-task-status]"],
+            purpose: 'Update task status',
             contextNeeded: ["task_id","previous_status","new_status"],
-            context_collection: {"strategy":"parent_data","scope_selector":"[data-task-id]","fields":[{"field_name":"task_id","selector":"[data-task-id]","extraction_method":"data-attribute","data_type":"string","attribute_name":"data-task-id","required":true,"description":"Task identifier","field_purpose":"metadata"},{"field_name":"previous_status","selector":"select","extraction_method":"value","data_type":"string","required":true,"description":"Status before change","field_purpose":"metadata"},{"field_name":"new_status","selector":"select","extraction_method":"value","data_type":"string","required":true,"description":"Status after change","field_purpose":"metadata"}],"state_tracking":{"track_previous_value":true,"track_change_delta":true,"track_timing":false},"fallback_sources":[]},
-            relationships: {"triggers":["status_change"],"affects":["task_updated"],"depends_on":[]}
+            context_collection: {"strategy":"parent_data","scope_selector":"[data-task-id]","fields":[{"field_name":"task_id","selector":"[data-task-id]","extraction_method":"data-attribute","data_type":"string","attribute_name":"data-task-id","required":true,"description":"Task being updated","field_purpose":"metadata"},{"field_name":"previous_status","selector":"select[name='status']","extraction_method":"value","data_type":"string","required":true,"description":"Status before change","field_purpose":"metadata"},{"field_name":"new_status","selector":"select[name='status']","extraction_method":"value","data_type":"string","required":true,"description":"Status after change","field_purpose":"metadata"}],"state_tracking":{"track_previous_value":true,"track_change_delta":true,"track_timing":false}},
+            relationships: {"triggers":["status_change"],"affects":["task_state","project_progress"],"depends_on":["task_context"]}
         },
 
         {
-            name: 'TaskActionMenu',
-            type: 'button',
-            pattern_type: 'item_selection',
-            selectors: ["button[aria-label*='menu']"],
-            purpose: 'Open task actions menu',
-            contextNeeded: ["task_id"],
-            context_collection: {"strategy":"parent_data","scope_selector":"[data-task-id]","fields":[{"field_name":"task_id","selector":"[data-task-id]","extraction_method":"data-attribute","data_type":"string","attribute_name":"data-task-id","required":true,"description":"Task identifier","field_purpose":"metadata"}],"state_tracking":{"track_previous_value":false,"track_change_delta":false,"track_timing":false},"fallback_sources":[]},
-            relationships: {"triggers":["task_view"],"affects":["menu_open"],"depends_on":[]}
+            name: 'TaskPriorityDropdown',
+            type: 'select_dropdown',
+            pattern_type: 'toggle_state',
+            selectors: ["select[name='priority']"],
+            purpose: 'Update task priority',
+            contextNeeded: ["task_id","previous_priority","new_priority"],
+            context_collection: {"strategy":"parent_data","scope_selector":"[data-task-id]","fields":[{"field_name":"task_id","selector":"[data-task-id]","extraction_method":"data-attribute","data_type":"string","attribute_name":"data-task-id","required":true,"description":"Task being updated","field_purpose":"metadata"},{"field_name":"previous_priority","selector":"select[name='priority']","extraction_method":"value","data_type":"string","required":true,"description":"Priority before change","field_purpose":"metadata"},{"field_name":"new_priority","selector":"select[name='priority']","extraction_method":"value","data_type":"string","required":true,"description":"Priority after change","field_purpose":"metadata"}],"state_tracking":{"track_previous_value":true,"track_change_delta":true,"track_timing":false}},
+            relationships: {"triggers":["priority_change"],"affects":["task_state"],"depends_on":["task_context"]}
         },
 
         {
             name: 'DeleteTaskButton',
             type: 'button',
             pattern_type: 'item_selection',
-            selectors: ["button"],
+            selectors: ["button[data-action='delete-task']"],
             purpose: 'Delete task',
-            contextNeeded: ["task_id","project_id"],
-            context_collection: {"strategy":"parent_data","scope_selector":"[data-task-id]","fields":[{"field_name":"task_id","selector":"[data-task-id]","extraction_method":"data-attribute","data_type":"string","attribute_name":"data-task-id","required":true,"description":"Task to delete","field_purpose":"metadata"}],"state_tracking":{"track_previous_value":false,"track_change_delta":false,"track_timing":false},"fallback_sources":[]},
-            relationships: {"triggers":["delete_click"],"affects":["task_deleted"],"depends_on":["task_menu"]}
+            contextNeeded: ["task_id","task_title"],
+            context_collection: {"strategy":"parent_data","scope_selector":"[data-task-id]","fields":[{"field_name":"task_id","selector":"[data-task-id]","extraction_method":"data-attribute","data_type":"string","attribute_name":"data-task-id","required":true,"description":"Task to delete","field_purpose":"metadata"}],"state_tracking":{"track_previous_value":false,"track_change_delta":false,"track_timing":false}},
+            relationships: {"triggers":["delete_action"],"affects":["task_list"],"depends_on":["task_context"]}
         },
 
         {
-            name: 'SettingsProfileForm',
-            type: 'form',
-            pattern_type: 'form_submission',
-            selectors: ["form"],
-            purpose: 'Update profile settings',
-            contextNeeded: ["full_name","email"],
-            context_collection: {"strategy":"form_state","scope_selector":"form","fields":[{"field_name":"full_name","selector":"input[name='fullName']","extraction_method":"value","data_type":"string","required":true,"description":"User full name","field_purpose":"pii","anonymize":true},{"field_name":"email","selector":"input[name='email']","extraction_method":"value","data_type":"string","required":true,"description":"User email","field_purpose":"pii","anonymize":true}],"state_tracking":{"track_previous_value":false,"track_change_delta":false,"track_timing":false},"fallback_sources":[]},
-            relationships: {"triggers":["form_submit"],"affects":["profile_updated"],"depends_on":[]}
-        },
-
-        {
-            name: 'NotificationToggle',
-            type: 'toggle_switch',
-            pattern_type: 'toggle_state',
-            selectors: ["button[role='switch']"],
-            purpose: 'Toggle notification preferences',
-            contextNeeded: ["notification_type","previous_state","new_state"],
-            context_collection: {"strategy":"component_props","scope_selector":"button[role='switch']","fields":[{"field_name":"notification_type","selector":"button[role='switch']","extraction_method":"data-attribute","data_type":"string","attribute_name":"data-notification-type","required":true,"description":"Type of notification","field_purpose":"preference"},{"field_name":"previous_state","selector":"button[role='switch']","extraction_method":"aria-attribute","data_type":"boolean","attribute_name":"aria-checked","required":true,"description":"State before toggle","field_purpose":"preference"},{"field_name":"new_state","selector":"button[role='switch']","extraction_method":"aria-attribute","data_type":"boolean","attribute_name":"aria-checked","required":true,"description":"State after toggle","field_purpose":"preference"}],"state_tracking":{"track_previous_value":true,"track_change_delta":true,"track_timing":false},"fallback_sources":[]},
-            relationships: {"triggers":["toggle_click"],"affects":["preference_updated"],"depends_on":[]}
-        },
-
-        {
-            name: 'SettingsTabSwitch',
-            type: 'tab',
-            pattern_type: 'tab_switch',
-            selectors: ["button[role='tab']"],
-            purpose: 'Switch settings tab',
-            contextNeeded: ["previous_tab","new_tab"],
-            context_collection: {"strategy":"sibling_state","scope_selector":"[role='tablist']","fields":[{"field_name":"previous_tab","selector":"button[role='tab'][aria-selected='true']","extraction_method":"data-attribute","data_type":"string","attribute_name":"data-value","required":true,"description":"Previous active tab","field_purpose":"metadata"},{"field_name":"new_tab","selector":"button[role='tab']","extraction_method":"data-attribute","data_type":"string","attribute_name":"data-value","required":true,"description":"New active tab","field_purpose":"metadata"}],"state_tracking":{"track_previous_value":true,"track_change_delta":false,"track_timing":false},"fallback_sources":[]},
-            relationships: {"triggers":["tab_click"],"affects":["tab_content_change"],"depends_on":[]}
+            name: 'ArchiveProjectButton',
+            type: 'button',
+            pattern_type: 'item_selection',
+            selectors: ["button[data-action='archive-project']"],
+            purpose: 'Archive project',
+            contextNeeded: ["project_id","project_name"],
+            context_collection: {"strategy":"parent_data","scope_selector":"[data-project-id]","fields":[{"field_name":"project_id","selector":"[data-project-id]","extraction_method":"data-attribute","data_type":"string","attribute_name":"data-project-id","required":true,"description":"Project to archive","field_purpose":"metadata"}],"state_tracking":{"track_previous_value":false,"track_change_delta":false,"track_timing":false}},
+            relationships: {"triggers":["archive_action"],"affects":["project_list","project_status"],"depends_on":["project_context"]}
         },
 
         {
             name: 'InviteTeamMemberButton',
             type: 'button',
-            pattern_type: 'modal_lifecycle',
-            selectors: ["button"],
-            purpose: 'Open invite modal',
+            pattern_type: 'modal_trigger',
+            selectors: ["button[data-action='invite-member']"],
+            purpose: 'Open team invite modal',
             contextNeeded: ["workspace_id","current_member_count"],
-            context_collection: {"strategy":"global_context","scope_selector":"body","fields":[{"field_name":"current_member_count","selector":"body","extraction_method":"data-attribute","data_type":"number","required":false,"description":"Current team size","field_purpose":"metadata"}],"state_tracking":{"track_previous_value":false,"track_change_delta":false,"track_timing":false},"fallback_sources":[]},
-            relationships: {"triggers":["team_page_view"],"affects":["invite_modal_open"],"depends_on":[]}
+            context_collection: {"strategy":"global_context","scope_selector":"body","fields":[{"field_name":"member_count","selector":"[data-member-count]","extraction_method":"textContent","data_type":"number","required":false,"description":"Current team size","field_purpose":"metadata"}],"state_tracking":{"track_previous_value":false,"track_change_delta":false,"track_timing":false}},
+            relationships: {"triggers":["modal_open"],"affects":["modal_visibility"],"depends_on":[]}
         },
 
         {
-            name: 'TeamInviteForm',
-            type: 'form',
+            name: 'TeamInviteFormSubmit',
+            type: 'button',
             pattern_type: 'form_submission',
-            selectors: ["form"],
+            selectors: ["button[data-action='send-invite']","form[data-form='invite'] button[type='submit']"],
             purpose: 'Send team invitation',
-            contextNeeded: ["email","workspace_id"],
-            context_collection: {"strategy":"form_state","scope_selector":"form","fields":[{"field_name":"invite_email","selector":"input[name='email']","extraction_method":"value","data_type":"string","required":true,"description":"Invitee email","field_purpose":"pii","anonymize":true}],"state_tracking":{"track_previous_value":false,"track_change_delta":false,"track_timing":true},"fallback_sources":[]},
-            relationships: {"triggers":["invite_submit"],"affects":["invitation_sent"],"depends_on":["invite_button"]}
+            contextNeeded: ["invite_email","workspace_id"],
+            context_collection: {"strategy":"modal_scope","scope_selector":"[role='dialog']","fields":[{"field_name":"invite_email","selector":"input[name='email']","extraction_method":"value","data_type":"string","required":true,"description":"Email to invite","field_purpose":"pii","anonymize":true}],"state_tracking":{"track_previous_value":false,"track_change_delta":false,"track_timing":false}},
+            relationships: {"triggers":["form_submit","modal_close"],"affects":["invitation_list"],"depends_on":["workspace_context"]}
         },
 
         {
             name: 'RemoveTeamMemberButton',
             type: 'button',
             pattern_type: 'item_selection',
-            selectors: ["button"],
+            selectors: ["button[data-action='remove-member']"],
             purpose: 'Remove team member',
-            contextNeeded: ["member_id","workspace_id"],
-            context_collection: {"strategy":"parent_data","scope_selector":"[data-member-id]","fields":[{"field_name":"member_id","selector":"[data-member-id]","extraction_method":"data-attribute","data_type":"string","attribute_name":"data-member-id","required":true,"description":"Member to remove","field_purpose":"metadata"}],"state_tracking":{"track_previous_value":false,"track_change_delta":false,"track_timing":false},"fallback_sources":[]},
-            relationships: {"triggers":["remove_click"],"affects":["member_removed"],"depends_on":[]}
+            contextNeeded: ["member_id","member_email"],
+            context_collection: {"strategy":"parent_data","scope_selector":"[data-member-id]","fields":[{"field_name":"member_id","selector":"[data-member-id]","extraction_method":"data-attribute","data_type":"string","attribute_name":"data-member-id","required":true,"description":"Member to remove","field_purpose":"metadata"}],"state_tracking":{"track_previous_value":false,"track_change_delta":false,"track_timing":false}},
+            relationships: {"triggers":["remove_action"],"affects":["team_list"],"depends_on":["member_context"]}
         },
 
         {
-            name: 'BillingUpgradeButton',
+            name: 'SettingsProfileForm',
+            type: 'form',
+            pattern_type: 'form_submission',
+            selectors: ["form[data-form='profile']"],
+            purpose: 'Update user profile',
+            contextNeeded: ["full_name","email"],
+            context_collection: {"strategy":"form_state","scope_selector":"form[data-form='profile']","fields":[{"field_name":"full_name","selector":"input[name='fullName']","extraction_method":"value","data_type":"string","required":true,"description":"User full name","field_purpose":"pii","anonymize":true},{"field_name":"email_changed","selector":"input[name='email']","extraction_method":"value","data_type":"boolean","required":false,"description":"Email was modified","field_purpose":"pii","anonymize":true}],"state_tracking":{"track_previous_value":true,"track_change_delta":true,"track_timing":false}},
+            relationships: {"triggers":["form_submit"],"affects":["user_profile"],"depends_on":[]}
+        },
+
+        {
+            name: 'SettingsWorkspaceForm',
+            type: 'form',
+            pattern_type: 'form_submission',
+            selectors: ["form[data-form='workspace']"],
+            purpose: 'Update workspace settings',
+            contextNeeded: ["workspace_name"],
+            context_collection: {"strategy":"form_state","scope_selector":"form[data-form='workspace']","fields":[{"field_name":"workspace_name","selector":"input[name='workspaceName']","extraction_method":"value","data_type":"string","required":true,"description":"Workspace name","field_purpose":"metadata"}],"state_tracking":{"track_previous_value":true,"track_change_delta":true,"track_timing":false}},
+            relationships: {"triggers":["form_submit"],"affects":["workspace_settings"],"depends_on":[]}
+        },
+
+        {
+            name: 'NotificationToggle',
+            type: 'toggle_switch',
+            pattern_type: 'toggle_state',
+            selectors: ["input[type='checkbox'][name='emailNotifications']"],
+            purpose: 'Toggle email notifications',
+            contextNeeded: ["previous_state","new_state"],
+            context_collection: {"strategy":"component_props","scope_selector":"input[type='checkbox']","fields":[{"field_name":"notification_enabled","selector":"input[name='emailNotifications']","extraction_method":"checked","data_type":"boolean","required":true,"description":"Notification state","field_purpose":"preference"}],"state_tracking":{"track_previous_value":true,"track_change_delta":true,"track_timing":false}},
+            relationships: {"triggers":["toggle_change"],"affects":["notification_preferences"],"depends_on":[]}
+        },
+
+        {
+            name: 'UpgradeToPremiumButton',
             type: 'button',
             pattern_type: 'navigation',
-            selectors: ["a[href='/pricing']","button"],
-            purpose: 'Navigate to pricing from billing',
-            contextNeeded: ["current_plan","source_page"],
-            context_collection: {"strategy":"global_context","scope_selector":"body","fields":[{"field_name":"current_plan","selector":"body","extraction_method":"data-attribute","data_type":"string","required":true,"description":"Current subscription plan","field_purpose":"metadata"}],"state_tracking":{"track_previous_value":false,"track_change_delta":false,"track_timing":false},"fallback_sources":[]},
-            relationships: {"triggers":["billing_page_view"],"affects":["pricing_page_view"],"depends_on":[]}
+            selectors: ["a[href='/pricing']","button[data-action='upgrade']"],
+            purpose: 'Navigate to pricing page',
+            contextNeeded: ["current_plan","trigger_location"],
+            context_collection: {"strategy":"global_context","scope_selector":"body","fields":[{"field_name":"current_plan","selector":"[data-plan]","extraction_method":"data-attribute","data_type":"string","attribute_name":"data-plan","required":false,"description":"Current subscription plan","field_purpose":"metadata"},{"field_name":"trigger_location","selector":"body","extraction_method":"data-attribute","data_type":"string","required":true,"description":"Where upgrade clicked","field_purpose":"metadata"}],"state_tracking":{"track_previous_value":false,"track_change_delta":false,"track_timing":false}},
+            relationships: {"triggers":["navigation"],"affects":["page_view"],"depends_on":[]}
+        },
+
+        {
+            name: 'BillingManageButton',
+            type: 'button',
+            pattern_type: 'navigation',
+            selectors: ["button[data-action='manage-billing']"],
+            purpose: 'Manage billing settings',
+            contextNeeded: ["current_plan","billing_cycle"],
+            context_collection: {"strategy":"global_context","scope_selector":"body","fields":[{"field_name":"current_plan","selector":"[data-plan]","extraction_method":"data-attribute","data_type":"string","attribute_name":"data-plan","required":true,"description":"Active plan","field_purpose":"metadata"}],"state_tracking":{"track_previous_value":false,"track_change_delta":false,"track_timing":false}},
+            relationships: {"triggers":["navigation"],"affects":["billing_portal"],"depends_on":["subscription_status"]}
         },
 
         {
             name: 'DownloadInvoiceButton',
             type: 'button',
             pattern_type: 'item_selection',
-            selectors: ["button"],
+            selectors: ["button[data-action='download-invoice']"],
             purpose: 'Download invoice PDF',
             contextNeeded: ["invoice_id","invoice_date"],
-            context_collection: {"strategy":"parent_data","scope_selector":"[data-invoice-id]","fields":[{"field_name":"invoice_id","selector":"[data-invoice-id]","extraction_method":"data-attribute","data_type":"string","attribute_name":"data-invoice-id","required":true,"description":"Invoice identifier","field_purpose":"metadata"}],"state_tracking":{"track_previous_value":false,"track_change_delta":false,"track_timing":false},"fallback_sources":[]},
-            relationships: {"triggers":["download_click"],"affects":["invoice_downloaded"],"depends_on":[]}
+            context_collection: {"strategy":"parent_data","scope_selector":"[data-invoice-id]","fields":[{"field_name":"invoice_id","selector":"[data-invoice-id]","extraction_method":"data-attribute","data_type":"string","attribute_name":"data-invoice-id","required":true,"description":"Invoice to download","field_purpose":"metadata"}],"state_tracking":{"track_previous_value":false,"track_change_delta":false,"track_timing":false}},
+            relationships: {"triggers":["download_action"],"affects":[],"depends_on":["invoice_context"]}
+        },
+
+        {
+            name: 'SettingsTabSwitch',
+            type: 'tab',
+            pattern_type: 'tab_switch',
+            selectors: ["button[role='tab']","[data-tab-trigger]"],
+            purpose: 'Switch settings tab',
+            contextNeeded: ["previous_tab","new_tab","unsaved_changes"],
+            context_collection: {"strategy":"sibling_state","scope_selector":"[role='tablist']","fields":[{"field_name":"previous_tab","selector":"button[role='tab'][aria-selected='true']","extraction_method":"data-attribute","data_type":"string","attribute_name":"data-tab","required":true,"description":"Tab being left","field_purpose":"metadata"},{"field_name":"new_tab","selector":"button[role='tab']","extraction_method":"data-attribute","data_type":"string","attribute_name":"data-tab","required":true,"description":"Tab being opened","field_purpose":"metadata"}],"state_tracking":{"track_previous_value":true,"track_change_delta":false,"track_timing":false}},
+            relationships: {"triggers":["tab_change"],"affects":["visible_content"],"depends_on":[]}
+        },
+
+        {
+            name: 'ProjectCardLink',
+            type: 'link',
+            pattern_type: 'navigation',
+            selectors: ["a[href^='/dashboard/projects/']"],
+            purpose: 'Navigate to project detail',
+            contextNeeded: ["project_id","project_name"],
+            context_collection: {"strategy":"parent_data","scope_selector":"[data-project-id]","fields":[{"field_name":"project_id","selector":"[data-project-id]","extraction_method":"data-attribute","data_type":"string","attribute_name":"data-project-id","required":true,"description":"Project being viewed","field_purpose":"metadata"}],"state_tracking":{"track_previous_value":false,"track_change_delta":false,"track_timing":false}},
+            relationships: {"triggers":["navigation"],"affects":["page_view"],"depends_on":["project_context"]}
+        },
+
+        {
+            name: 'ActivityFeedItem',
+            type: 'custom',
+            pattern_type: 'item_selection',
+            selectors: ["[data-activity-id]"],
+            purpose: 'View activity detail',
+            contextNeeded: ["activity_id","activity_type","entity_id"],
+            context_collection: {"strategy":"parent_data","scope_selector":"[data-activity-id]","fields":[{"field_name":"activity_id","selector":"[data-activity-id]","extraction_method":"data-attribute","data_type":"string","attribute_name":"data-activity-id","required":true,"description":"Activity record","field_purpose":"metadata"},{"field_name":"activity_type","selector":"[data-activity-type]","extraction_method":"data-attribute","data_type":"string","attribute_name":"data-activity-type","required":true,"description":"Type of activity","field_purpose":"metadata"}],"state_tracking":{"track_previous_value":false,"track_change_delta":false,"track_timing":false}},
+            relationships: {"triggers":["click"],"affects":[],"depends_on":["activity_context"]}
+        },
+
+        {
+            name: 'PaywallModal',
+            type: 'custom',
+            pattern_type: 'modal_lifecycle',
+            selectors: ["[data-modal='paywall']"],
+            purpose: 'Display upgrade prompt',
+            contextNeeded: ["trigger_context","limit_reached","current_usage"],
+            context_collection: {"strategy":"modal_scope","scope_selector":"[data-modal='paywall']","fields":[{"field_name":"limit_type","selector":"[data-limit-type]","extraction_method":"data-attribute","data_type":"string","attribute_name":"data-limit-type","required":true,"description":"What limit was hit","field_purpose":"metadata"},{"field_name":"current_usage","selector":"[data-current-usage]","extraction_method":"data-attribute","data_type":"number","attribute_name":"data-current-usage","required":true,"description":"Current usage count","field_purpose":"metadata"}],"state_tracking":{"track_previous_value":false,"track_change_delta":false,"track_timing":true}},
+            relationships: {"triggers":["limit_reached"],"affects":["modal_visibility"],"depends_on":["usage_context"]}
         }
       ];
       
@@ -504,10 +603,10 @@
 
     // ============ AI-ENHANCED AUTO-TRACKING ============
     initAutoTracking() {
-      console.log('[demo-test-apps-2025-10-20-1dm43hjiuwo] 🤖 AI-Enhanced Analytics initialized');
-      console.log('[demo-test-apps-2025-10-20-1dm43hjiuwo] 📊 Tracking 22 discovered components');
-      console.log('[demo-test-apps-2025-10-20-1dm43hjiuwo] 🔑 User ID:', this.userId);
-      console.log('[demo-test-apps-2025-10-20-1dm43hjiuwo] 📍 Session ID:', this.sessionId);
+      console.log('[demo-test-apps-2025-10-20-nmhaw2ptzym] 🤖 AI-Enhanced Analytics initialized');
+      console.log('[demo-test-apps-2025-10-20-nmhaw2ptzym] 📊 Tracking 31 discovered components');
+      console.log('[demo-test-apps-2025-10-20-nmhaw2ptzym] 🔑 User ID:', this.userId);
+      console.log('[demo-test-apps-2025-10-20-nmhaw2ptzym] 📍 Session ID:', this.sessionId);
       
       this.trackPageView();
       this.trackAllClicks();
@@ -1393,14 +1492,14 @@
       })
       .then(response => {
         if (!response.ok) {
-          console.error('[demo-test-apps-2025-10-20-1dm43hjiuwo] Analytics flush failed:', response.status);
+          console.error('[demo-test-apps-2025-10-20-nmhaw2ptzym] Analytics flush failed:', response.status);
           // Re-add to queue and persist on failure
         this.eventQueue.unshift(...batch);
           this.saveQueueToStorage();
         }
       })
       .catch(err => {
-        console.error('[demo-test-apps-2025-10-20-1dm43hjiuwo] Analytics flush error:', err);
+        console.error('[demo-test-apps-2025-10-20-nmhaw2ptzym] Analytics flush error:', err);
         // Re-add to queue and persist on failure
         this.eventQueue.unshift(...batch);
         this.saveQueueToStorage();
@@ -1411,7 +1510,7 @@
   // Auto-initialize
   if (typeof window !== 'undefined' && !window.analytics) {
     window.analytics = new AnalyticsTracker();
-    console.log('[demo-test-apps-2025-10-20-1dm43hjiuwo] ✅ AI-Enhanced Analytics tracker with new event schema initialized');
+    console.log('[demo-test-apps-2025-10-20-nmhaw2ptzym] ✅ AI-Enhanced Analytics tracker with new event schema initialized');
   }
 
   return AnalyticsTracker;
