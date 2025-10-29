@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Analytics Tracker Test</title>
+  <script src="/tracker.js"></script>
+</head>
+<body>
+  <h1>Analytics Tracker Test Page</h1>
+  <p>Check console for analytics initialization logs</p>
+  
+  <button id="test-button" style="padding: 10px 20px; font-size: 16px; margin: 20px;">
+    Click Me To Test Tracking
+  </button>
+  
+  <div id="status" style="margin-top: 20px; padding: 20px; background: #f5f5f5; border-radius: 8px;">
+    <h3>Status:</h3>
+    <pre id="output"></pre>
+  </div>
+  
+  <script>
+    const output = document.getElementById('output');
+    
+    function log(message) {
+      output.textContent += message + '\n';
+      console.log(message);
+    }
+    
+    // Check if tracker loaded
+    setTimeout(() => {
+      if (window.analytics) {
+        log('✅ Analytics tracker loaded successfully');
+        log('📊 Tracker config: ' + JSON.stringify(window.analytics.config, null, 2));
+        log('🔑 User ID: ' + window.analytics.userId);
+        log('📍 Session ID: ' + window.analytics.sessionId);
+        log('📦 Event queue length: ' + window.analytics.eventQueue.length);
+      } else {
+        log('❌ Analytics tracker NOT loaded');
+      }
+    }, 2000);
+    
+    // Test button click
+    document.getElementById('test-button').addEventListener('click', () => {
+      log('🖱️ Button clicked - tracker should capture this');
+      setTimeout(() => {
+        if (window.analytics) {
+          log('📦 Queue length after click: ' + window.analytics.eventQueue.length);
+        }
+      }, 500);
+    });
+  </script>
+</body>
+</html>
+
