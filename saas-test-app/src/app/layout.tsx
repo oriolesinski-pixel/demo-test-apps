@@ -2,8 +2,6 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
-import Script from 'next/script';
-import AnalyticsProvider from '@/components/AnalyticsProvider';
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -20,11 +18,8 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <Script src="/tracker.js" strategy="beforeInteractive" />
-        <AnalyticsProvider>
-          {children}
-          <Toaster />
-        </AnalyticsProvider>
+        {children}
+        <Toaster />
       </body>
     </html>
   );
