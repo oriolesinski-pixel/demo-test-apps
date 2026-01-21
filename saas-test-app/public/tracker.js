@@ -115,7 +115,7 @@
       // This tracker connects to the analytics service.
       // Each app is identified by its unique app_key.
       this.config = {
-        appKey: 'demo-test-apps-2025-12-28-kwlty3h3dti',
+        appKey: 'demo-test-apps-2026-01-21-153lmddxhta',
         endpoint: 'https://analytics-service-production-0f0c.up.railway.app/ingest/analytics',
         batchSize: 10,
         flushInterval: 10000  // Reduced to 10 seconds for faster event delivery
@@ -173,278 +173,227 @@
       // AI-discovered component patterns with pre-computed metadata
       this.componentDetectors = [
         {
-            name: 'CheckoutPlanSelector',
-            type: 'link',
-            pattern_type: 'navigation',
-            selectors: ["a[href*='/checkout?plan=']","a[href*='cycle=']"],
-            purpose: 'Navigate to checkout with plan selection',
-            contextNeeded: ["plan","cycle","source_page"],
-            context_collection: {"strategy":"global_context","scope_selector":"body","fields":[{"field_name":"plan","selector":"a[href*='plan=']","extraction_method":"data-attribute","data_type":"string","attribute_name":"href","required":true,"description":"Selected plan type","field_purpose":"preference"},{"field_name":"billing_cycle","selector":"a[href*='cycle=']","extraction_method":"data-attribute","data_type":"string","attribute_name":"href","required":true,"description":"Monthly or annual billing","field_purpose":"preference"}],"state_tracking":{"track_previous_value":false,"track_change_delta":false,"track_timing":false},"fallback_sources":["searchParams"]},
-            relationships: {"triggers":["pricing_page_view"],"affects":["checkout_flow"],"depends_on":["plan_selection"]}
-        },
-
-        {
-            name: 'CheckoutStepContinue',
+            name: 'CheckoutContinueButton',
             type: 'button',
             pattern_type: 'multi_step_flow',
-            selectors: ["button[onClick*='handleContinueToPayment']"],
+            selectors: ["button[type='button']",".checkout-continue-btn"],
             purpose: 'Advance to payment step',
-            contextNeeded: ["step","plan","cycle","amount"],
-            context_collection: {"strategy":"component_props","scope_selector":"form","fields":[{"field_name":"current_step","selector":"[data-step]","extraction_method":"data-attribute","data_type":"number","attribute_name":"data-step","required":true,"description":"Current checkout step","field_purpose":"metadata"},{"field_name":"plan","selector":"input[name='plan']","extraction_method":"value","data_type":"string","required":true,"description":"Selected plan","field_purpose":"preference"},{"field_name":"billing_cycle","selector":"input[name='cycle']","extraction_method":"value","data_type":"string","required":true,"description":"Billing frequency","field_purpose":"preference"},{"field_name":"total_amount","selector":"[data-total]","extraction_method":"textContent","data_type":"number","required":true,"description":"Total checkout amount","field_purpose":"metadata"}],"state_tracking":{"track_previous_value":true,"track_change_delta":false,"track_timing":true},"fallback_sources":["searchParams"]},
-            relationships: {"triggers":["step_1_completion"],"affects":["payment_form_display"],"depends_on":["plan_selection"]}
+            contextNeeded: ["plan","billing_cycle","step","amount"],
+            context_collection: {"strategy":"global_context","scope_selector":"body","fields":[{"field_name":"plan","selector":"searchParams","extraction_method":"data-attribute","data_type":"string","required":true,"description":"Selected subscription plan"},{"field_name":"billing_cycle","selector":"searchParams","extraction_method":"data-attribute","data_type":"string","required":true,"description":"Monthly or annual billing"},{"field_name":"step","selector":"state","extraction_method":"value","data_type":"number","required":true,"description":"Current checkout step"}],"state_tracking":{"track_previous_value":true,"track_change_delta":false,"track_timing":false}},
+            relationships: {"triggers":["step_change"],"affects":["checkout_step"],"depends_on":["plan_selection"]},
+            // Form collection detection - for buttons that submit forms
+            is_form_collection: false,
+            form_schema: null
         },
 
         {
-            name: 'CheckoutPaymentForm',
-            type: 'form',
+            name: 'CheckoutCompleteButton',
+            type: 'button',
             pattern_type: 'form_submission',
-            selectors: ["form[onSubmit*='handleCompleteCheckout']"],
-            purpose: 'Submit payment information',
-            contextNeeded: ["card_fields_completed","billing_info_completed","plan","amount"],
-            context_collection: {"strategy":"form_state","scope_selector":"form","fields":[{"field_name":"card_number_completed","selector":"input[name='cardNumber']","extraction_method":"value","data_type":"boolean","required":true,"description":"Card number field filled","field_purpose":"pci_protected","anonymize":true},{"field_name":"expiry_completed","selector":"input[name='expiry']","extraction_method":"value","data_type":"boolean","required":true,"description":"Expiry date filled","field_purpose":"pci_protected","anonymize":true},{"field_name":"cvv_completed","selector":"input[name='cvv']","extraction_method":"value","data_type":"boolean","required":true,"description":"CVV filled","field_purpose":"pci_protected","anonymize":true},{"field_name":"cardholder_name","selector":"input[name='cardholderName']","extraction_method":"value","data_type":"string","required":true,"description":"Name on card","field_purpose":"pii","anonymize":true},{"field_name":"billing_address_completed","selector":"input[name='billingAddress']","extraction_method":"value","data_type":"boolean","required":true,"description":"Billing address filled","field_purpose":"pii","anonymize":true},{"field_name":"plan","selector":"input[name='plan']","extraction_method":"value","data_type":"string","required":true,"description":"Selected plan","field_purpose":"metadata"},{"field_name":"billing_cycle","selector":"input[name='cycle']","extraction_method":"value","data_type":"string","required":true,"description":"Billing frequency","field_purpose":"metadata"}],"state_tracking":{"track_previous_value":false,"track_change_delta":false,"track_timing":true},"fallback_sources":["component_state"]},
-            relationships: {"triggers":["payment_form_submit"],"affects":["subscription_creation"],"depends_on":["checkout_step_2"]}
+            selectors: ["button[type='submit']","form button[type='submit']"],
+            purpose: 'Submit payment and complete checkout',
+            contextNeeded: ["plan","billing_cycle","total_amount","card_number","expiry","cvv","cardholder_name","billing_address"],
+            context_collection: {"strategy":"form_state","scope_selector":"form","fields":[{"field_name":"card_number","selector":"input[name='cardNumber']","extraction_method":"value","data_type":"string","required":true,"description":"Credit card number","field_purpose":"pci_protected","anonymize":true},{"field_name":"cvv","selector":"input[name='cvv']","extraction_method":"value","data_type":"string","required":true,"description":"Card CVV","field_purpose":"pci_protected","anonymize":true},{"field_name":"plan","selector":"searchParams","extraction_method":"data-attribute","data_type":"string","required":true,"description":"Selected plan"},{"field_name":"total_amount","selector":"state","extraction_method":"value","data_type":"number","required":true,"description":"Total checkout amount"}],"state_tracking":{"track_previous_value":false,"track_change_delta":false,"track_timing":true}},
+            relationships: {"triggers":["payment_processing"],"affects":["subscription_status"],"depends_on":["form_validation"]},
+            // Form collection detection - for buttons that submit forms
+            is_form_collection: true,
+            form_schema: {"form_name":"CheckoutPaymentForm","form_selector":"form","fields":[{"field_name":"cardNumber","field_label":"Card Number","field_type":"text","required":true,"is_sensitive":true},{"field_name":"expiry","field_label":"Expiry Date","field_type":"text","required":true,"is_sensitive":true},{"field_name":"cvv","field_label":"CVV","field_type":"text","required":true,"is_sensitive":true},{"field_name":"cardholderName","field_label":"Cardholder Name","field_type":"text","required":true,"is_sensitive":false},{"field_name":"billingAddress","field_label":"Billing Address","field_type":"text","required":true,"is_sensitive":false},{"field_name":"city","field_label":"City","field_type":"text","required":true,"is_sensitive":false},{"field_name":"state","field_label":"State","field_type":"text","required":true,"is_sensitive":false},{"field_name":"zip","field_label":"ZIP Code","field_type":"text","required":true,"is_sensitive":false}],"submit_button_selector":"button[type='submit']"}
         },
 
         {
-            name: 'CheckoutSuccessViewDashboard',
-            type: 'button',
+            name: 'DashboardToPricingLink',
+            type: 'link',
             pattern_type: 'navigation',
-            selectors: ["a[href='/dashboard']","button[onClick*='dashboard']"],
-            purpose: 'Navigate to dashboard after upgrade',
-            contextNeeded: ["upgrade_completed","plan","timestamp"],
-            context_collection: {"strategy":"global_context","scope_selector":"body","fields":[{"field_name":"upgrade_completed","selector":"[data-upgrade-success]","extraction_method":"data-attribute","data_type":"boolean","required":true,"description":"Upgrade success flag","field_purpose":"metadata"}],"state_tracking":{"track_previous_value":false,"track_change_delta":false,"track_timing":false},"fallback_sources":["url_path"]},
-            relationships: {"triggers":["checkout_success"],"affects":["dashboard_view"],"depends_on":["payment_completed"]}
+            selectors: ["a[href='/pricing']","button:has-text('Upgrade to Premium')"],
+            purpose: 'Navigate to pricing page',
+            contextNeeded: ["current_page","workspace_plan"],
+            context_collection: {"strategy":"global_context","scope_selector":"body","fields":[{"field_name":"current_page","selector":"window.location.pathname","extraction_method":"value","data_type":"string","required":true,"description":"Current page path"}],"state_tracking":{"track_previous_value":false,"track_change_delta":false,"track_timing":false}},
+            relationships: {"triggers":["page_navigation"],"affects":["current_route"],"depends_on":[]},
+            // Form collection detection - for buttons that submit forms
+            is_form_collection: false,
+            form_schema: null
         },
 
         {
-            name: 'DashboardNewProjectButton',
-            type: 'button',
+            name: 'NewProjectButton',
+            type: 'link',
             pattern_type: 'navigation',
             selectors: ["a[href='/dashboard/projects/new']","button:has-text('New Project')"],
-            purpose: 'Navigate to create project',
-            contextNeeded: ["current_project_count","plan","workspace_id"],
-            context_collection: {"strategy":"global_context","scope_selector":"body","fields":[{"field_name":"current_project_count","selector":"[data-project-count]","extraction_method":"textContent","data_type":"number","required":false,"description":"Current active projects","field_purpose":"metadata"}],"state_tracking":{"track_previous_value":false,"track_change_delta":false,"track_timing":false},"fallback_sources":["api_call"]},
-            relationships: {"triggers":["dashboard_view"],"affects":["project_form_display"],"depends_on":["authenticated"]}
+            purpose: 'Navigate to create project page',
+            contextNeeded: ["current_project_count","workspace_plan"],
+            context_collection: {"strategy":"global_context","scope_selector":"body","fields":[{"field_name":"current_page","selector":"window.location.pathname","extraction_method":"value","data_type":"string","required":true,"description":"Current page"}],"state_tracking":{"track_previous_value":false,"track_change_delta":false,"track_timing":false}},
+            relationships: {"triggers":["page_navigation"],"affects":["current_route"],"depends_on":[]},
+            // Form collection detection - for buttons that submit forms
+            is_form_collection: false,
+            form_schema: null
         },
 
         {
-            name: 'ProjectCreationForm',
-            type: 'form',
+            name: 'CreateProjectForm',
+            type: 'button',
             pattern_type: 'form_submission',
-            selectors: ["form[onSubmit*='handleSubmit']"],
+            selectors: ["form button[type='submit']","button:has-text('Create Project')"],
             purpose: 'Create new project',
-            contextNeeded: ["project_name","description","workspace_id"],
-            context_collection: {"strategy":"form_state","scope_selector":"form","fields":[{"field_name":"project_name","selector":"input[name='name']","extraction_method":"value","data_type":"string","required":true,"description":"Project name","field_purpose":"metadata"},{"field_name":"project_description","selector":"textarea[name='description']","extraction_method":"value","data_type":"string","required":false,"description":"Project description","field_purpose":"metadata"}],"state_tracking":{"track_previous_value":false,"track_change_delta":false,"track_timing":true},"fallback_sources":["component_state"]},
-            relationships: {"triggers":["new_project_click"],"affects":["project_created"],"depends_on":["workspace_membership"]}
+            contextNeeded: ["name","description","workspace_id","project_count"],
+            context_collection: {"strategy":"form_state","scope_selector":"form","fields":[{"field_name":"name","selector":"input[name='name']","extraction_method":"value","data_type":"string","required":true,"description":"Project name"},{"field_name":"description","selector":"textarea[name='description']","extraction_method":"value","data_type":"string","required":false,"description":"Project description"}],"state_tracking":{"track_previous_value":false,"track_change_delta":false,"track_timing":true}},
+            relationships: {"triggers":["project_creation","paywall_check"],"affects":["project_list"],"depends_on":["workspace_plan"]},
+            // Form collection detection - for buttons that submit forms
+            is_form_collection: true,
+            form_schema: {"form_name":"CreateProjectForm","form_selector":"form","fields":[{"field_name":"name","field_label":"Project Name","field_type":"text","required":true,"is_sensitive":false},{"field_name":"description","field_label":"Description","field_type":"textarea","required":false,"is_sensitive":false}],"submit_button_selector":"button[type='submit']"}
         },
 
         {
-            name: 'PaywallModal',
-            type: 'modal_trigger',
-            pattern_type: 'modal_lifecycle',
-            selectors: ["[data-paywall-modal]","[role='dialog']"],
-            purpose: 'Display upgrade prompt at limit',
-            contextNeeded: ["trigger_context","current_usage","limit","feature"],
-            context_collection: {"strategy":"modal_scope","scope_selector":"[role='dialog']","fields":[{"field_name":"trigger_context","selector":"[data-trigger-context]","extraction_method":"data-attribute","data_type":"string","attribute_name":"data-trigger-context","required":true,"description":"What triggered paywall","field_purpose":"metadata"},{"field_name":"current_usage","selector":"[data-current-usage]","extraction_method":"data-attribute","data_type":"number","attribute_name":"data-current-usage","required":true,"description":"Current usage count","field_purpose":"metadata"},{"field_name":"limit","selector":"[data-limit]","extraction_method":"data-attribute","data_type":"number","attribute_name":"data-limit","required":true,"description":"Plan limit","field_purpose":"metadata"}],"state_tracking":{"track_previous_value":false,"track_change_delta":false,"track_timing":true},"fallback_sources":["component_props"]},
-            relationships: {"triggers":["limit_reached"],"affects":["upgrade_consideration"],"depends_on":["free_plan"]}
-        },
-
-        {
-            name: 'PaywallUpgradeButton',
+            name: 'CreateTaskButton',
             type: 'button',
-            pattern_type: 'navigation',
-            selectors: ["button:has-text('Upgrade')","a[href='/pricing']"],
-            purpose: 'Navigate to pricing from paywall',
-            contextNeeded: ["paywall_context","feature_blocked"],
-            context_collection: {"strategy":"parent_data","scope_selector":"[role='dialog']","fields":[{"field_name":"feature_blocked","selector":"[data-feature]","extraction_method":"data-attribute","data_type":"string","attribute_name":"data-feature","required":true,"description":"Feature that triggered paywall","field_purpose":"metadata"}],"state_tracking":{"track_previous_value":false,"track_change_delta":false,"track_timing":false},"fallback_sources":["modal_context"]},
-            relationships: {"triggers":["paywall_displayed"],"affects":["pricing_page_view"],"depends_on":["limit_reached"]}
-        },
-
-        {
-            name: 'TaskCreationDialog',
-            type: 'button',
-            pattern_type: 'modal_lifecycle',
-            selectors: ["button[onClick*='setCreateTaskOpen']"],
-            purpose: 'Open task creation modal',
-            contextNeeded: ["project_id","project_name"],
-            context_collection: {"strategy":"global_context","scope_selector":"body","fields":[{"field_name":"project_id","selector":"[data-project-id]","extraction_method":"data-attribute","data_type":"string","attribute_name":"data-project-id","required":true,"description":"Current project ID","field_purpose":"metadata"}],"state_tracking":{"track_previous_value":false,"track_change_delta":false,"track_timing":false},"fallback_sources":["url_params"]},
-            relationships: {"triggers":["project_view"],"affects":["task_form_display"],"depends_on":["project_access"]}
-        },
-
-        {
-            name: 'TaskCreationForm',
-            type: 'form',
             pattern_type: 'form_submission',
-            selectors: ["form:has(input[name='taskTitle'])"],
-            purpose: 'Create new task',
-            contextNeeded: ["task_title","description","priority","assigned_to","due_date","project_id"],
-            context_collection: {"strategy":"form_state","scope_selector":"form","fields":[{"field_name":"task_title","selector":"input[name='taskTitle']","extraction_method":"value","data_type":"string","required":true,"description":"Task title","field_purpose":"metadata"},{"field_name":"task_description","selector":"textarea[name='taskDescription']","extraction_method":"value","data_type":"string","required":false,"description":"Task description","field_purpose":"metadata"},{"field_name":"task_priority","selector":"select[name='taskPriority']","extraction_method":"value","data_type":"string","required":true,"description":"Task priority level","field_purpose":"preference"},{"field_name":"assigned_to","selector":"select[name='taskAssignedTo']","extraction_method":"value","data_type":"string","required":false,"description":"Assigned team member","field_purpose":"metadata"},{"field_name":"due_date","selector":"input[name='taskDueDate']","extraction_method":"value","data_type":"string","required":false,"description":"Task due date","field_purpose":"metadata"}],"state_tracking":{"track_previous_value":false,"track_change_delta":false,"track_timing":true},"fallback_sources":["component_state"]},
-            relationships: {"triggers":["task_dialog_open"],"affects":["task_created"],"depends_on":["project_membership"]}
+            selectors: ["button:has-text('Create Task')","dialog button[type='submit']"],
+            purpose: 'Create new task in project',
+            contextNeeded: ["task_title","task_description","priority","assigned_to","due_date","project_id"],
+            context_collection: {"strategy":"modal_scope","scope_selector":"[role='dialog']","fields":[{"field_name":"task_title","selector":"input[name='taskTitle']","extraction_method":"value","data_type":"string","required":true,"description":"Task title"},{"field_name":"priority","selector":"select[name='taskPriority']","extraction_method":"value","data_type":"string","required":false,"description":"Task priority level"},{"field_name":"project_id","selector":"closest('[data-project-id]')","extraction_method":"data-attribute","attribute_name":"data-project-id","data_type":"string","required":true,"description":"Parent project ID"}],"state_tracking":{"track_previous_value":false,"track_change_delta":false,"track_timing":true}},
+            relationships: {"triggers":["task_creation"],"affects":["task_list"],"depends_on":["project_context"]},
+            // Form collection detection - for buttons that submit forms
+            is_form_collection: true,
+            form_schema: {"form_name":"CreateTaskForm","form_selector":"form, [role='dialog'] form","fields":[{"field_name":"taskTitle","field_label":"Task Title","field_type":"text","required":true,"is_sensitive":false},{"field_name":"taskDescription","field_label":"Description","field_type":"textarea","required":false,"is_sensitive":false},{"field_name":"taskPriority","field_label":"Priority","field_type":"select","required":false,"is_sensitive":false},{"field_name":"taskAssignedTo","field_label":"Assign To","field_type":"select","required":false,"is_sensitive":false},{"field_name":"taskDueDate","field_label":"Due Date","field_type":"date","required":false,"is_sensitive":false}],"submit_button_selector":"button[type='submit']"}
         },
 
         {
             name: 'TaskStatusDropdown',
-            type: 'select_dropdown',
+            type: 'select',
             pattern_type: 'toggle_state',
-            selectors: ["select:has(option[value='todo'])","[role='combobox']"],
+            selectors: ["select[name='status']","[role='combobox']"],
             purpose: 'Change task status',
-            contextNeeded: ["task_id","previous_status","new_status"],
-            context_collection: {"strategy":"parent_data","scope_selector":"[data-task-id]","fields":[{"field_name":"task_id","selector":"[data-task-id]","extraction_method":"data-attribute","data_type":"string","attribute_name":"data-task-id","required":true,"description":"Task identifier","field_purpose":"metadata"},{"field_name":"previous_status","selector":"select","extraction_method":"value","data_type":"string","required":true,"description":"Status before change","field_purpose":"metadata"},{"field_name":"new_status","selector":"select","extraction_method":"value","data_type":"string","required":true,"description":"Status after change","field_purpose":"metadata"}],"state_tracking":{"track_previous_value":true,"track_change_delta":true,"track_timing":false},"fallback_sources":["component_state"]},
-            relationships: {"triggers":["status_dropdown_change"],"affects":["task_updated"],"depends_on":["task_exists"]}
+            contextNeeded: ["task_id","previous_status","new_status","project_id"],
+            context_collection: {"strategy":"parent_data","scope_selector":"closest('[data-task-id]')","fields":[{"field_name":"task_id","selector":"closest('[data-task-id]')","extraction_method":"data-attribute","attribute_name":"data-task-id","data_type":"string","required":true,"description":"Task identifier"},{"field_name":"previous_status","selector":"select","extraction_method":"value","data_type":"string","required":true,"description":"Status before change"},{"field_name":"new_status","selector":"select","extraction_method":"value","data_type":"string","required":true,"description":"Status after change"}],"state_tracking":{"track_previous_value":true,"track_change_delta":true,"track_timing":false}},
+            relationships: {"triggers":["status_change"],"affects":["task_state"],"depends_on":["task_id"]},
+            // Form collection detection - for buttons that submit forms
+            is_form_collection: false,
+            form_schema: null
         },
 
         {
-            name: 'TaskActionMenu',
+            name: 'InviteTeamMemberButton',
             type: 'button',
-            pattern_type: 'item_selection',
-            selectors: ["button:has([data-icon='MoreVertical'])","[role='menubutton']"],
-            purpose: 'Open task actions menu',
-            contextNeeded: ["task_id","task_status"],
-            context_collection: {"strategy":"parent_data","scope_selector":"[data-task-id]","fields":[{"field_name":"task_id","selector":"[data-task-id]","extraction_method":"data-attribute","data_type":"string","attribute_name":"data-task-id","required":true,"description":"Task identifier","field_purpose":"metadata"}],"state_tracking":{"track_previous_value":false,"track_change_delta":false,"track_timing":false},"fallback_sources":["closest_parent"]},
-            relationships: {"triggers":["task_row_interaction"],"affects":["menu_display"],"depends_on":["task_exists"]}
-        },
-
-        {
-            name: 'TaskDeleteAction',
-            type: 'button',
-            pattern_type: 'item_selection',
-            selectors: ["button:has-text('Delete')","[role='menuitem']:has([data-icon='Trash2'])"],
-            purpose: 'Delete task',
-            contextNeeded: ["task_id","task_title","confirmation"],
-            context_collection: {"strategy":"parent_data","scope_selector":"[data-task-id]","fields":[{"field_name":"task_id","selector":"[data-task-id]","extraction_method":"data-attribute","data_type":"string","attribute_name":"data-task-id","required":true,"description":"Task to delete","field_purpose":"metadata"}],"state_tracking":{"track_previous_value":false,"track_change_delta":false,"track_timing":false},"fallback_sources":["menu_context"]},
-            relationships: {"triggers":["menu_item_click"],"affects":["task_deleted"],"depends_on":["task_menu_open"]}
-        },
-
-        {
-            name: 'ProjectEditDialog',
-            type: 'button',
-            pattern_type: 'modal_lifecycle',
-            selectors: ["button[onClick*='setEditProjectOpen']"],
-            purpose: 'Open project edit modal',
-            contextNeeded: ["project_id","project_name"],
-            context_collection: {"strategy":"global_context","scope_selector":"body","fields":[{"field_name":"project_id","selector":"[data-project-id]","extraction_method":"data-attribute","data_type":"string","attribute_name":"data-project-id","required":true,"description":"Project to edit","field_purpose":"metadata"}],"state_tracking":{"track_previous_value":false,"track_change_delta":false,"track_timing":false},"fallback_sources":["url_params"]},
-            relationships: {"triggers":["edit_button_click"],"affects":["edit_modal_display"],"depends_on":["project_access"]}
-        },
-
-        {
-            name: 'ProjectArchiveAction',
-            type: 'button',
-            pattern_type: 'item_selection',
-            selectors: ["button:has-text('Archive')","[role='menuitem']:has([data-icon='Archive'])"],
-            purpose: 'Archive project',
-            contextNeeded: ["project_id","project_name"],
-            context_collection: {"strategy":"parent_data","scope_selector":"[data-project-id]","fields":[{"field_name":"project_id","selector":"[data-project-id]","extraction_method":"data-attribute","data_type":"string","attribute_name":"data-project-id","required":true,"description":"Project to archive","field_purpose":"metadata"}],"state_tracking":{"track_previous_value":false,"track_change_delta":false,"track_timing":false},"fallback_sources":["menu_context"]},
-            relationships: {"triggers":["menu_item_click"],"affects":["project_archived"],"depends_on":["project_menu_open"]}
-        },
-
-        {
-            name: 'TeamInviteDialog',
-            type: 'button',
-            pattern_type: 'modal_lifecycle',
-            selectors: ["button[onClick*='setInviteDialogOpen']","button:has-text('Invite')"],
-            purpose: 'Open team invite modal',
-            contextNeeded: ["workspace_id","current_member_count"],
-            context_collection: {"strategy":"global_context","scope_selector":"body","fields":[{"field_name":"current_member_count","selector":"[data-member-count]","extraction_method":"textContent","data_type":"number","required":false,"description":"Current team size","field_purpose":"metadata"}],"state_tracking":{"track_previous_value":false,"track_change_delta":false,"track_timing":false},"fallback_sources":["component_state"]},
-            relationships: {"triggers":["invite_button_click"],"affects":["invite_modal_display"],"depends_on":["workspace_membership"]}
-        },
-
-        {
-            name: 'TeamInviteForm',
-            type: 'form',
             pattern_type: 'form_submission',
-            selectors: ["form:has(input[name='inviteEmail'])"],
-            purpose: 'Send team invitation',
+            selectors: ["button:has-text('Invite')","dialog button[type='submit']"],
+            purpose: 'Send team member invitation',
             contextNeeded: ["invite_email","workspace_id"],
-            context_collection: {"strategy":"form_state","scope_selector":"form","fields":[{"field_name":"invite_email","selector":"input[name='inviteEmail']","extraction_method":"value","data_type":"string","required":true,"description":"Email to invite","field_purpose":"pii","anonymize":true}],"state_tracking":{"track_previous_value":false,"track_change_delta":false,"track_timing":true},"fallback_sources":["component_state"]},
-            relationships: {"triggers":["invite_form_submit"],"affects":["invitation_sent"],"depends_on":["invite_modal_open"]}
+            context_collection: {"strategy":"modal_scope","scope_selector":"[role='dialog']","fields":[{"field_name":"invite_email","selector":"input[type='email']","extraction_method":"value","data_type":"string","required":true,"description":"Email of invitee","field_purpose":"pii","anonymize":true}],"state_tracking":{"track_previous_value":false,"track_change_delta":false,"track_timing":false}},
+            relationships: {"triggers":["invitation_sent"],"affects":["team_members"],"depends_on":["workspace_id"]},
+            // Form collection detection - for buttons that submit forms
+            is_form_collection: true,
+            form_schema: {"form_name":"InviteTeamMemberForm","form_selector":"form, [role='dialog'] form","fields":[{"field_name":"inviteEmail","field_label":"Email Address","field_type":"email","required":true,"is_sensitive":false}],"submit_button_selector":"button[type='submit']"}
         },
 
         {
-            name: 'TeamMemberRemove',
+            name: 'SaveProfileButton',
             type: 'button',
-            pattern_type: 'item_selection',
-            selectors: ["button:has([data-icon='Trash2'])","[role='menuitem']:has-text('Remove')"],
-            purpose: 'Remove team member',
-            contextNeeded: ["member_id","member_email"],
-            context_collection: {"strategy":"parent_data","scope_selector":"[data-member-id]","fields":[{"field_name":"member_id","selector":"[data-member-id]","extraction_method":"data-attribute","data_type":"string","attribute_name":"data-member-id","required":true,"description":"Member to remove","field_purpose":"metadata"}],"state_tracking":{"track_previous_value":false,"track_change_delta":false,"track_timing":false},"fallback_sources":["menu_context"]},
-            relationships: {"triggers":["menu_item_click"],"affects":["member_removed"],"depends_on":["member_menu_open"]}
-        },
-
-        {
-            name: 'SettingsProfileForm',
-            type: 'form',
             pattern_type: 'form_submission',
-            selectors: ["form[onSubmit*='handleSaveProfile']"],
+            selectors: ["button:has-text('Save')","form button[type='submit']"],
             purpose: 'Update user profile',
             contextNeeded: ["full_name","email"],
-            context_collection: {"strategy":"form_state","scope_selector":"form","fields":[{"field_name":"full_name","selector":"input[name='fullName']","extraction_method":"value","data_type":"string","required":true,"description":"User full name","field_purpose":"pii","anonymize":true},{"field_name":"email","selector":"input[name='email']","extraction_method":"value","data_type":"string","required":true,"description":"User email","field_purpose":"pii","anonymize":true}],"state_tracking":{"track_previous_value":true,"track_change_delta":true,"track_timing":true},"fallback_sources":["component_state"]},
-            relationships: {"triggers":["profile_form_submit"],"affects":["profile_updated"],"depends_on":["authenticated"]}
+            context_collection: {"strategy":"form_state","scope_selector":"form","fields":[{"field_name":"full_name","selector":"input[name='fullName']","extraction_method":"value","data_type":"string","required":true,"description":"User full name","field_purpose":"pii","anonymize":true},{"field_name":"email","selector":"input[type='email']","extraction_method":"value","data_type":"string","required":true,"description":"User email","field_purpose":"pii","anonymize":true}],"state_tracking":{"track_previous_value":true,"track_change_delta":true,"track_timing":false}},
+            relationships: {"triggers":["profile_update"],"affects":["user_profile"],"depends_on":["user_id"]},
+            // Form collection detection - for buttons that submit forms
+            is_form_collection: true,
+            form_schema: {"form_name":"ProfileSettingsForm","form_selector":"form","fields":[{"field_name":"fullName","field_label":"Full Name","field_type":"text","required":true,"is_sensitive":false},{"field_name":"email","field_label":"Email","field_type":"email","required":true,"is_sensitive":false}],"submit_button_selector":"button[type='submit']"}
         },
 
         {
-            name: 'SettingsNotificationToggles',
-            type: 'toggle_switch',
+            name: 'NotificationToggle',
+            type: 'toggle',
             pattern_type: 'toggle_state',
-            selectors: ["input[type='checkbox'][role='switch']"],
+            selectors: ["input[type='checkbox'][role='switch']",".switch"],
             purpose: 'Toggle notification preferences',
-            contextNeeded: ["preference_name","previous_state","new_state"],
-            context_collection: {"strategy":"parent_data","scope_selector":"label","fields":[{"field_name":"preference_name","selector":"label","extraction_method":"textContent","data_type":"string","required":true,"description":"Notification preference","field_purpose":"preference"},{"field_name":"previous_state","selector":"input[type='checkbox']","extraction_method":"checked","data_type":"boolean","required":true,"description":"State before toggle","field_purpose":"preference"},{"field_name":"new_state","selector":"input[type='checkbox']","extraction_method":"checked","data_type":"boolean","required":true,"description":"State after toggle","field_purpose":"preference"}],"state_tracking":{"track_previous_value":true,"track_change_delta":true,"track_timing":false},"fallback_sources":["component_state"]},
-            relationships: {"triggers":["toggle_click"],"affects":["preference_updated"],"depends_on":["authenticated"]}
-        },
-
-        {
-            name: 'BillingUpgradeButton',
-            type: 'button',
-            pattern_type: 'navigation',
-            selectors: ["a[href='/pricing']","button:has-text('Upgrade')"],
-            purpose: 'Navigate to pricing page',
-            contextNeeded: ["current_plan","source_page"],
-            context_collection: {"strategy":"global_context","scope_selector":"body","fields":[{"field_name":"current_plan","selector":"[data-plan]","extraction_method":"data-attribute","data_type":"string","attribute_name":"data-plan","required":false,"description":"Current subscription plan","field_purpose":"metadata"}],"state_tracking":{"track_previous_value":false,"track_change_delta":false,"track_timing":false},"fallback_sources":["component_state"]},
-            relationships: {"triggers":["billing_page_view"],"affects":["pricing_page_view"],"depends_on":["authenticated"]}
-        },
-
-        {
-            name: 'BillingDownloadInvoice',
-            type: 'button',
-            pattern_type: 'item_selection',
-            selectors: ["button:has([data-icon='Download'])"],
-            purpose: 'Download invoice PDF',
-            contextNeeded: ["invoice_id","invoice_date"],
-            context_collection: {"strategy":"parent_data","scope_selector":"[data-invoice-id]","fields":[{"field_name":"invoice_id","selector":"[data-invoice-id]","extraction_method":"data-attribute","data_type":"string","attribute_name":"data-invoice-id","required":true,"description":"Invoice identifier","field_purpose":"metadata"}],"state_tracking":{"track_previous_value":false,"track_change_delta":false,"track_timing":false},"fallback_sources":["row_context"]},
-            relationships: {"triggers":["download_button_click"],"affects":["invoice_downloaded"],"depends_on":["invoice_exists"]}
+            contextNeeded: ["notification_type","previous_state","new_state"],
+            context_collection: {"strategy":"component_props","scope_selector":"closest('label')","fields":[{"field_name":"notification_type","selector":"closest('label')","extraction_method":"textContent","data_type":"string","required":true,"description":"Type of notification"},{"field_name":"previous_state","selector":"input[type='checkbox']","extraction_method":"checked","data_type":"boolean","required":true,"description":"State before toggle"},{"field_name":"new_state","selector":"input[type='checkbox']","extraction_method":"checked","data_type":"boolean","required":true,"description":"State after toggle"}],"state_tracking":{"track_previous_value":true,"track_change_delta":true,"track_timing":false}},
+            relationships: {"triggers":["preference_change"],"affects":["notification_settings"],"depends_on":[]},
+            // Form collection detection - for buttons that submit forms
+            is_form_collection: false,
+            form_schema: null
         },
 
         {
             name: 'SettingsTabSwitch',
             type: 'tab',
             pattern_type: 'tab_switch',
-            selectors: ["button[role='tab']","[data-state='active']"],
+            selectors: ["[role='tab']","button[data-state]"],
             purpose: 'Switch settings tab',
             contextNeeded: ["previous_tab","new_tab","unsaved_changes"],
-            context_collection: {"strategy":"sibling_state","scope_selector":"[role='tablist']","fields":[{"field_name":"previous_tab","selector":"button[data-state='active']","extraction_method":"textContent","data_type":"string","required":true,"description":"Previously active tab","field_purpose":"metadata"},{"field_name":"new_tab","selector":"button[role='tab']","extraction_method":"textContent","data_type":"string","required":true,"description":"Newly selected tab","field_purpose":"metadata"}],"state_tracking":{"track_previous_value":true,"track_change_delta":false,"track_timing":false},"fallback_sources":["aria_selected"]},
-            relationships: {"triggers":["tab_click"],"affects":["tab_content_display"],"depends_on":["settings_page_view"]}
+            context_collection: {"strategy":"sibling_state","scope_selector":"[role='tablist']","fields":[{"field_name":"previous_tab","selector":"[role='tab'][data-state='active']","extraction_method":"textContent","data_type":"string","required":true,"description":"Previously active tab"},{"field_name":"new_tab","selector":"this","extraction_method":"textContent","data_type":"string","required":true,"description":"Newly selected tab"}],"state_tracking":{"track_previous_value":true,"track_change_delta":false,"track_timing":false}},
+            relationships: {"triggers":["tab_change"],"affects":["visible_content"],"depends_on":[]},
+            // Form collection detection - for buttons that submit forms
+            is_form_collection: false,
+            form_schema: null
         },
 
         {
             name: 'ProjectCardLink',
             type: 'link',
-            pattern_type: 'navigation',
-            selectors: ["a[href*='/dashboard/projects/']"],
+            pattern_type: 'item_selection',
+            selectors: ["a[href^='/dashboard/projects/']",".project-card"],
             purpose: 'Navigate to project detail',
             contextNeeded: ["project_id","project_name","task_count"],
-            context_collection: {"strategy":"parent_data","scope_selector":"[data-project-id]","fields":[{"field_name":"project_id","selector":"[data-project-id]","extraction_method":"data-attribute","data_type":"string","attribute_name":"data-project-id","required":true,"description":"Project identifier","field_purpose":"metadata"},{"field_name":"task_count","selector":"[data-task-count]","extraction_method":"textContent","data_type":"number","required":false,"description":"Number of tasks","field_purpose":"metadata"}],"state_tracking":{"track_previous_value":false,"track_change_delta":false,"track_timing":false},"fallback_sources":["href_attribute"]},
-            relationships: {"triggers":["project_card_click"],"affects":["project_detail_view"],"depends_on":["project_exists"]}
+            context_collection: {"strategy":"parent_data","scope_selector":"closest('[data-project-id]')","fields":[{"field_name":"project_id","selector":"a","extraction_method":"data-attribute","attribute_name":"href","data_type":"string","required":true,"description":"Project ID from URL"},{"field_name":"project_name","selector":".project-title","extraction_method":"textContent","data_type":"string","required":false,"description":"Project name"}],"state_tracking":{"track_previous_value":false,"track_change_delta":false,"track_timing":false}},
+            relationships: {"triggers":["page_navigation"],"affects":["current_route"],"depends_on":["project_id"]},
+            // Form collection detection - for buttons that submit forms
+            is_form_collection: false,
+            form_schema: null
         },
 
         {
-            name: 'DashboardUpgradeBanner',
+            name: 'DeleteTaskButton',
             type: 'button',
+            pattern_type: 'item_selection',
+            selectors: ["button:has-text('Delete')","[role='menuitem']:has-text('Delete')"],
+            purpose: 'Delete task',
+            contextNeeded: ["task_id","task_title","project_id"],
+            context_collection: {"strategy":"parent_data","scope_selector":"closest('[data-task-id]')","fields":[{"field_name":"task_id","selector":"closest('[data-task-id]')","extraction_method":"data-attribute","attribute_name":"data-task-id","data_type":"string","required":true,"description":"Task to delete"}],"state_tracking":{"track_previous_value":false,"track_change_delta":false,"track_timing":false}},
+            relationships: {"triggers":["task_deletion"],"affects":["task_list"],"depends_on":["task_id"]},
+            // Form collection detection - for buttons that submit forms
+            is_form_collection: false,
+            form_schema: null
+        },
+
+        {
+            name: 'ArchiveProjectButton',
+            type: 'button',
+            pattern_type: 'item_selection',
+            selectors: ["button:has-text('Archive')","[role='menuitem']:has-text('Archive')"],
+            purpose: 'Archive project',
+            contextNeeded: ["project_id","project_name"],
+            context_collection: {"strategy":"parent_data","scope_selector":"closest('[data-project-id]')","fields":[{"field_name":"project_id","selector":"closest('[data-project-id]')","extraction_method":"data-attribute","attribute_name":"data-project-id","data_type":"string","required":true,"description":"Project to archive"}],"state_tracking":{"track_previous_value":false,"track_change_delta":false,"track_timing":false}},
+            relationships: {"triggers":["project_archival"],"affects":["project_status"],"depends_on":["project_id"]},
+            // Form collection detection - for buttons that submit forms
+            is_form_collection: false,
+            form_schema: null
+        },
+
+        {
+            name: 'RemoveTeamMemberButton',
+            type: 'button',
+            pattern_type: 'item_selection',
+            selectors: ["button:has-text('Remove')","[role='menuitem']:has-text('Remove')"],
+            purpose: 'Remove team member',
+            contextNeeded: ["member_id","member_email","workspace_id"],
+            context_collection: {"strategy":"parent_data","scope_selector":"closest('[data-member-id]')","fields":[{"field_name":"member_id","selector":"closest('[data-member-id]')","extraction_method":"data-attribute","attribute_name":"data-member-id","data_type":"string","required":true,"description":"Member to remove"}],"state_tracking":{"track_previous_value":false,"track_change_delta":false,"track_timing":false}},
+            relationships: {"triggers":["member_removal"],"affects":["team_members"],"depends_on":["member_id"]},
+            // Form collection detection - for buttons that submit forms
+            is_form_collection: false,
+            form_schema: null
+        },
+
+        {
+            name: 'BackToDashboardLink',
+            type: 'link',
             pattern_type: 'navigation',
-            selectors: ["button:has([data-icon='Crown'])","a[href='/pricing']"],
-            purpose: 'Navigate to pricing from dashboard',
-            contextNeeded: ["current_plan","banner_location"],
-            context_collection: {"strategy":"global_context","scope_selector":"body","fields":[{"field_name":"banner_location","selector":"[data-banner-location]","extraction_method":"data-attribute","data_type":"string","attribute_name":"data-banner-location","required":false,"description":"Where banner displayed","field_purpose":"metadata"}],"state_tracking":{"track_previous_value":false,"track_change_delta":false,"track_timing":false},"fallback_sources":["component_location"]},
-            relationships: {"triggers":["dashboard_view"],"affects":["pricing_page_view"],"depends_on":["free_plan"]}
+            selectors: ["a[href='/dashboard']","button:has-text('Back')"],
+            purpose: 'Navigate back to dashboard',
+            contextNeeded: ["current_page"],
+            context_collection: {"strategy":"global_context","scope_selector":"body","fields":[{"field_name":"current_page","selector":"window.location.pathname","extraction_method":"value","data_type":"string","required":true,"description":"Page navigating from"}],"state_tracking":{"track_previous_value":false,"track_change_delta":false,"track_timing":false}},
+            relationships: {"triggers":["page_navigation"],"affects":["current_route"],"depends_on":[]},
+            // Form collection detection - for buttons that submit forms
+            is_form_collection: false,
+            form_schema: null
         }
       ];
       
@@ -538,10 +487,10 @@
 
     // ============ AI-ENHANCED AUTO-TRACKING ============
     initAutoTracking() {
-      console.log('[demo-test-apps-2025-12-28-kwlty3h3dti] 🤖 AI-Enhanced Analytics initialized');
-      console.log('[demo-test-apps-2025-12-28-kwlty3h3dti] 📊 Tracking 25 discovered components');
-      console.log('[demo-test-apps-2025-12-28-kwlty3h3dti] 🔑 User ID:', this.userId);
-      console.log('[demo-test-apps-2025-12-28-kwlty3h3dti] 📍 Session ID:', this.sessionId);
+      console.log('[demo-test-apps-2026-01-21-153lmddxhta] 🤖 AI-Enhanced Analytics initialized');
+      console.log('[demo-test-apps-2026-01-21-153lmddxhta] 📊 Tracking 16 discovered components');
+      console.log('[demo-test-apps-2026-01-21-153lmddxhta] 🔑 User ID:', this.userId);
+      console.log('[demo-test-apps-2026-01-21-153lmddxhta] 📍 Session ID:', this.sessionId);
       
       this.trackPageView();
       this.trackAllClicks();
@@ -642,6 +591,114 @@
       const urlParams = this.getURLParams();
       if (Object.keys(urlParams).length > 0) {
         context.url_params = urlParams;
+      }
+      
+      return context;
+    }
+
+    // ============ FORM COLLECTION CONTEXT EXTRACTION ============
+    // Extracts form field values with GUARANTEED SLOTS (always includes all expected fields)
+    extractFormContext(element, componentInfo) {
+      const formSchema = componentInfo?.form_schema;
+      
+      // Find the form - try component's selector first, then closest form
+      let form = null;
+      if (formSchema?.form_selector) {
+        // Try each selector in the form_selector (may be comma-separated)
+        const selectors = formSchema.form_selector.split(',').map(s => s.trim());
+        for (const sel of selectors) {
+          try {
+            form = element.closest(sel) || document.querySelector(sel);
+            if (form) break;
+          } catch (e) { /* invalid selector */ }
+        }
+      }
+      
+      // Fallback to closest form
+      if (!form) {
+        form = element.closest('form');
+      }
+      
+      if (!form) return null;
+      
+      // Initialize context with ALL expected fields as null (guaranteed slots)
+      const context = {};
+      
+      if (formSchema && formSchema.fields && formSchema.fields.length > 0) {
+        // Pre-populate all expected slots with null for consistent schema
+        for (const field of formSchema.fields) {
+          context[field.field_name] = null;
+        }
+        
+        // Now extract actual values from form
+        for (const field of formSchema.fields) {
+          try {
+            // Build flexible selector to find the input
+            const selectors = [
+              `[name="${field.field_name}"]`,
+              `#${field.field_name}`,
+              `[id*="${field.field_name}"]`,
+              `[data-field="${field.field_name}"]`,
+              `[placeholder*="${field.field_label || field.field_name}"]`
+            ];
+            
+            let input = null;
+            for (const sel of selectors) {
+              try {
+                input = form.querySelector(sel);
+                if (input) break;
+              } catch (e) { /* invalid selector */ }
+            }
+            
+            if (!input) continue;
+            
+            // Handle sensitive fields - just indicate if filled
+            if (field.is_sensitive) {
+              context[field.field_name] = input.value ? '[FILLED]' : null;
+              continue;
+            }
+            
+            // Get value based on field type
+            let value = null;
+            switch (field.field_type) {
+              case 'checkbox':
+                value = input.checked;
+                break;
+              case 'radio':
+                const checked = form.querySelector(`[name="${field.field_name}"]:checked`);
+                value = checked ? checked.value : null;
+                break;
+              case 'select':
+                value = input.options && input.selectedIndex >= 0 
+                  ? (input.options[input.selectedIndex]?.text || input.value)
+                  : null;
+                break;
+              case 'file':
+                value = input.files && input.files.length > 0 
+                  ? `${input.files.length} file(s)` 
+                  : null;
+                break;
+              default:
+                value = input.value || null;
+            }
+            
+            // Truncate long text values
+            if (typeof value === 'string' && value.length > 200) {
+              value = value.slice(0, 200) + '...';
+            }
+            
+            // Don't store empty strings as values
+            if (value === '') value = null;
+            
+            context[field.field_name] = value;
+            
+          } catch (e) {
+            // Keep as null on error - slot is still guaranteed
+          }
+        }
+      } else {
+        // No schema defined - fall back to dynamic form extraction
+        return this.captureFormData(form);
       }
       
       return context;
@@ -901,20 +958,19 @@
         // Try AI component detection first
         const componentInfo = this.detectComponent(target);
         
-        // Find clickable element
+        // Find clickable element (including Radix UI menu items and dropdown items)
         const clickable = target.closest(`
-          button, [role="button"], [onclick], input[type="submit"], input[type="button"],
+          button, [role="button"], [role="menuitem"], [role="option"], [role="menuitemcheckbox"], [role="menuitemradio"],
+          [onclick], input[type="submit"], input[type="button"],
           [class*="button"], [class*="btn"], svg, [class*="icon"], [data-clickable],
-          [style*="cursor: pointer"], a
+          [style*="cursor: pointer"], a, [data-radix-collection-item]
         `);
         
         if (clickable || componentInfo) {
           const element = clickable || target;
           
-          // Extract rich context using pattern-based extraction
-          const contextData = componentInfo ? this.extractContext(element, componentInfo) : {};
-          
-          // Build event data - cleaner schema without redundant fields
+          // BUTTON_CLICK is a simple click event - no form context
+          // Form data is captured in MODAL_INTERACTION (action: "submitted") or FORM_INTERACTION
           const eventData = {
             element_text: this.getElementText(element).slice(0, 100),
             element_type: this.getButtonType(element),
@@ -922,11 +978,6 @@
             page_path: window.location.pathname,
             component_name: componentInfo?.name || this.inferComponentName(element)
           };
-          
-          // Only add context if it has meaningful data (not empty object)
-          if (contextData && Object.keys(contextData).length > 0) {
-            eventData.context = contextData;
-          }
           
           this.trackEvent('BUTTON_CLICK', eventData);
         }
@@ -955,7 +1006,6 @@
             this.trackEvent('FORM_INTERACTION', {
               action: 'started',
               form_name: this.getFormName(form),
-              surface: this.getSurface(form),
               page_path: window.location.pathname,
               fields_total: this.countFormFields(form),
               fields_completed: 0
@@ -979,26 +1029,28 @@
                       form.closest('[data-modal]') ||
                       form.closest('[class*="modal"]');
         
+        // Capture form data for all form submissions (sanitized)
+        const formData = this.captureFormData(form);
+        const formAction = this.inferFormAction(form);
+        
         if (modal) {
           // For modal forms: track MODAL_INTERACTION with form_data (skip FORM_INTERACTION)
-          const formData = this.captureFormData(form);
-          
           this.trackEvent('MODAL_INTERACTION', {
             action: 'submitted',
             modal_name: this.getModalTitle(modal),
-            trigger_source: 'button_click',
             page_path: window.location.pathname,
             form_data: formData
           });
         } else {
-          // For standalone forms: track FORM_INTERACTION only
+          // For standalone forms: track FORM_INTERACTION with context
           this.trackEvent('FORM_INTERACTION', {
             action: 'submitted',
             form_name: this.getFormName(form),
-            surface: this.getSurface(form),
+            form_action: formAction,
             page_path: window.location.pathname,
             fields_total: this.countFormFields(form),
-            fields_completed: tracking ? tracking.fieldsInteracted.size : 0
+            fields_completed: tracking ? tracking.fieldsInteracted.size : 0,
+            form_data: Object.keys(formData).length > 0 ? formData : undefined
           });
         }
         
@@ -1017,7 +1069,6 @@
             this.trackEvent('FORM_INTERACTION', {
               action: 'abandoned',
               form_name: this.getFormName(form),
-              surface: this.getSurface(form),
               page_path: window.location.pathname,
               fields_total: this.countFormFields(form),
               fields_completed: tracking.fieldsInteracted.size
@@ -1057,7 +1108,6 @@
                   this.trackEvent('MODAL_INTERACTION', {
                     action: 'opened',
                     modal_name: this.getModalTitle(element),
-                    trigger_source: 'button_click',
                     page_path: window.location.pathname
                   });
                 } else {
@@ -1065,10 +1115,7 @@
                   action: 'shown',
                     element_type: overlayType,
                   element_name: this.getElementName(element),
-                  element_id: element.id || null,
-                  trigger_source: 'auto_trigger',
-                  page_path: window.location.pathname,
-                  has_cta: this.hasCallToAction(element)
+                  page_path: window.location.pathname
                 });
                 }
               } else if (!isVisible && wasVisible) {
@@ -1079,7 +1126,6 @@
                   this.trackEvent('MODAL_INTERACTION', {
                     action: 'closed',
                     modal_name: this.getModalTitle(element),
-                    trigger_source: 'button_click',
                     page_path: window.location.pathname
                   });
                 } else {
@@ -1087,10 +1133,7 @@
                   action: 'hidden',
                     element_type: overlayType,
                   element_name: this.getElementName(element),
-                  element_id: element.id || null,
-                  trigger_source: 'button_click',
-                  page_path: window.location.pathname,
-                  has_cta: this.hasCallToAction(element)
+                  page_path: window.location.pathname
                 });
                 }
               }
@@ -1129,11 +1172,8 @@
         if (milestone) {
           this.reachedMilestones.add(milestone);
           this.trackEvent('SCROLL_INTERACTION', {
-            action: 'depth_reached',
             depth_percentage: milestone,
-            milestone: milestone + '%',
-            page_path: window.location.pathname,
-            direction: this.scrollDirection
+            page_path: window.location.pathname
           });
         }
       };
@@ -1184,11 +1224,22 @@
     }
 
     getElementName(element) {
-      return element.getAttribute('aria-label') ||
-             element.getAttribute('title') ||
-             element.dataset.name ||
-             element.id ||
-             'unnamed';
+      // Check meaningful attributes first
+      if (element.getAttribute('aria-label')) return element.getAttribute('aria-label');
+      if (element.getAttribute('title')) return element.getAttribute('title');
+      if (element.dataset.name) return element.dataset.name;
+      
+      // Only use id if it's not a Radix/React auto-generated one
+      const id = element.id;
+      if (id && !id.startsWith('radix-') && !id.startsWith(':r') && !id.match(/^radix-.*_r_d+/)) {
+        return id;
+      }
+      
+      // Try to build a name from content
+      const text = element.textContent?.trim().slice(0, 30);
+      if (text && text.length > 2) return text;
+      
+      return 'unnamed';
     }
 
     // Get a meaningful page name from H1 or path
@@ -1274,10 +1325,46 @@
     }
 
     getFormName(form) {
-      return form.getAttribute('name') || 
-             form.getAttribute('aria-label') ||
-             form.id ||
-             'form';
+      // 1. Try explicit form attributes
+      if (form.getAttribute('name')) return form.getAttribute('name');
+      if (form.getAttribute('aria-label')) return form.getAttribute('aria-label');
+      if (form.id && !form.id.startsWith('radix-') && !form.id.startsWith(':r')) return form.id;
+      
+      // 2. Try to find heading inside or near the form
+      const heading = form.querySelector('h1, h2, h3, h4, [class*="title"], [class*="heading"]');
+      if (heading && heading.textContent) {
+        const headingText = heading.textContent.trim().slice(0, 50);
+        if (headingText.length > 2) return headingText;
+      }
+      
+      // 3. Try to find heading in parent container (for card-wrapped forms)
+      const parent = form.closest('section, article, [class*="card"], [class*="modal"], [class*="dialog"]');
+      if (parent) {
+        const parentHeading = parent.querySelector('h1, h2, h3, h4, [class*="title"], [class*="heading"]');
+        if (parentHeading && parentHeading.textContent) {
+          const parentText = parentHeading.textContent.trim().slice(0, 50);
+          if (parentText.length > 2) return parentText;
+        }
+      }
+      
+      // 4. Try to infer from submit button text
+      const submitBtn = form.querySelector('button[type="submit"], input[type="submit"], button:not([type])');
+      if (submitBtn) {
+        const btnText = (submitBtn.textContent || submitBtn.value || '').trim();
+        if (btnText && btnText.length > 2 && btnText.length < 30) {
+          return btnText + ' Form';
+        }
+      }
+      
+      // 5. Try to infer from page path
+      const path = window.location.pathname;
+      if (path.includes('/new')) return 'Create Form';
+      if (path.includes('/edit')) return 'Edit Form';
+      if (path.includes('/login')) return 'Login Form';
+      if (path.includes('/signup') || path.includes('/register')) return 'Signup Form';
+      if (path.includes('/settings')) return 'Settings Form';
+      
+      return 'form';
     }
 
     // Count only visible/fillable form fields (exclude buttons, hidden, submit)
@@ -1307,8 +1394,615 @@
       return count;
     }
 
-    // Capture form field values (sanitized for analytics)
+    // =============================================================================
+    // UNIVERSAL FORM DATA CAPTURE - Framework Agnostic
+    // =============================================================================
+    // Works with: React, Vue, Angular, Svelte, vanilla JS, Radix UI, Material UI,
+    // Chakra, Ant Design, shadcn/ui, Headless UI, and any other framework.
+    //
+    // Strategy: Scan the form scope for ALL field groups (label + input pairs),
+    // detect field type semantically, and extract values accordingly.
+    // =============================================================================
     captureFormData(form) {
+      const formData = {};
+      const capturedElements = new Set(); // Avoid duplicates
+      
+      // Sensitive field patterns to skip entirely
+      const sensitivePatterns = /password|pwd|secret|token|cvv|cvc|ssn|social.*security|card.*number|credit.*card|pin/i;
+      
+      // Fields to anonymize (show partial value)
+      const anonymizePatterns = /email|phone|tel|mobile/i;
+      
+      // Get the widest reasonable scope (modal > form)
+      const scope = form.closest('[role="dialog"]') || 
+                   form.closest('[data-radix-dialog-content]') ||
+                   form.closest('[class*="modal"]') ||
+                   form.closest('[class*="Modal"]') ||
+                   form.closest('[class*="dialog"]') ||
+                   form.closest('[class*="Dialog"]') ||
+                   form;
+      
+      try {
+        // =================================================================
+        // STRATEGY 1: Find all form field GROUPS (label + input containers)
+        // This is the most reliable approach for modern component libraries
+        // =================================================================
+        console.log('[Analytics Debug] Scanning scope:', scope.tagName, scope.className?.toString().slice(0, 50));
+        const fieldGroups = this.findFieldGroups(scope);
+        console.log('[Analytics Debug] Found', fieldGroups.length, 'field groups');
+        
+        for (const group of fieldGroups) {
+          const { label, element, type } = group;
+          console.log('[Analytics Debug] Field group:', { label, type, tagName: element.tagName, value: element.value || element.textContent?.slice(0, 30) });
+          if (!label || capturedElements.has(element)) continue;
+          
+          const fieldName = this.cleanFieldName(label);
+          if (!fieldName || formData[fieldName] || sensitivePatterns.test(fieldName)) continue;
+          
+          let value = this.extractFieldValue(element, type);
+          console.log('[Analytics Debug] Extracted value for', fieldName, ':', value);
+          if (value === null || value === '' || value === undefined) continue;
+          
+          // Anonymize if needed
+          value = this.sanitizeValue(fieldName, value, anonymizePatterns);
+          if (value === null) continue;
+          
+          formData[fieldName] = value;
+          capturedElements.add(element);
+        }
+        
+        // =================================================================
+        // STRATEGY 2: Native form.elements as fallback
+        // =================================================================
+        if (form.elements) {
+          for (let i = 0; i < form.elements.length; i++) {
+            const el = form.elements[i];
+            if (capturedElements.has(el)) continue;
+            
+          const name = el.name || el.id;
+            if (!name || el.type === 'submit' || el.type === 'button' || el.type === 'hidden') continue;
+            if (sensitivePatterns.test(name) || formData[name]) continue;
+            
+            let value = this.extractNativeInputValue(el);
+            if (value === null || value === '' || value === undefined) continue;
+            
+            value = this.sanitizeValue(name, value, anonymizePatterns);
+            if (value === null) continue;
+            
+            formData[name] = value;
+            capturedElements.add(el);
+          }
+        }
+        
+      } catch (e) {
+        console.warn('[Analytics] Error capturing form data:', e);
+      }
+      
+      return Object.keys(formData).length > 0 ? formData : null;
+    }
+    
+    // Find all field groups (label + input pairs) in scope
+    findFieldGroups(scope) {
+      const groups = [];
+      const processedInputs = new Set();
+      
+      // =====================================================================
+      // APPROACH 1: Find all LABELS first, then find their associated inputs
+      // This is more reliable than looking for wrapper patterns
+      // =====================================================================
+      const allLabels = scope.querySelectorAll('label, [class*="label"]:not(input):not(button):not(select), [class*="Label"]:not(input):not(button):not(select)');
+      
+      console.log('[Analytics Debug] Found', allLabels.length, 'labels in scope');
+      
+      for (const labelEl of allLabels) {
+        const labelText = labelEl.textContent?.trim();
+        if (!labelText || labelText.length > 100 || labelText.length < 1) continue;
+        
+        // Skip if this looks like a button label
+        if (labelEl.closest('button')) continue;
+        
+        // Find the associated input
+        let input = null;
+        
+        // Method 1: label[for] -> input[id]
+        const forAttr = labelEl.getAttribute('for');
+        if (forAttr) {
+          input = scope.querySelector(`#${forAttr}`) || 
+                  scope.querySelector(`[name="${forAttr}"]`);
+        }
+        
+        // Method 2: Input is inside the label
+        if (!input) {
+          input = labelEl.querySelector('input, textarea, select, [role="combobox"], button[data-state]');
+        }
+        
+        // Method 3: Input is a sibling (next element)
+        if (!input) {
+          const parent = labelEl.parentElement;
+          if (parent) {
+            const siblings = Array.from(parent.children);
+            const labelIndex = siblings.indexOf(labelEl);
+            for (let i = labelIndex + 1; i < siblings.length; i++) {
+              const sib = siblings[i];
+              // Check if sibling IS an input
+              if (sib.matches('input, textarea, select, [role="combobox"], button[data-state]')) {
+                input = sib;
+                break;
+              }
+              // Check if sibling CONTAINS an input
+              const innerInput = sib.querySelector('input, textarea, select, [role="combobox"], button[data-state]');
+              if (innerInput) {
+                input = innerInput;
+                break;
+              }
+            }
+          }
+        }
+        
+        // Method 4: Input is in the same container (parent)
+        if (!input) {
+          const parent = labelEl.parentElement;
+          if (parent) {
+            input = parent.querySelector('input:not([type="hidden"]):not([type="submit"]), textarea, select, [role="combobox"], button[data-state]');
+          }
+        }
+        
+        if (input && !processedInputs.has(input) && !this.isActionButton(input)) {
+          const type = this.detectFieldType(input);
+          groups.push({ label: labelText, element: input, type });
+          processedInputs.add(input);
+          console.log('[Analytics Debug] Matched label:', labelText, '-> input type:', type, 'tag:', input.tagName);
+        }
+      }
+      
+      // =====================================================================
+      // APPROACH 2: Find orphan inputs (no label found above) and try harder
+      // =====================================================================
+      const allInputs = scope.querySelectorAll(`
+        input:not([type="hidden"]):not([type="submit"]):not([type="button"]),
+        textarea,
+        select,
+        [role="combobox"],
+        [role="listbox"],
+        [role="slider"],
+        [role="spinbutton"],
+        [contenteditable="true"],
+        [data-radix-select-trigger],
+        button[data-state]
+      `);
+      
+      for (const input of allInputs) {
+        if (processedInputs.has(input)) continue;
+        if (this.isActionButton(input)) continue;
+        
+        const label = this.findLabelForElement(input, scope);
+        const type = this.detectFieldType(input);
+        
+        if (label) {
+          groups.push({ label, element: input, type });
+          processedInputs.add(input);
+          console.log('[Analytics Debug] Orphan input found label:', label, '-> type:', type);
+            } else {
+          console.log('[Analytics Debug] Orphan input NO LABEL:', input.tagName, input.className?.toString().slice(0, 30));
+        }
+      }
+      
+      return groups;
+    }
+    
+    // Analyze a field wrapper to extract label and input
+    analyzeFieldWrapper(wrapper, processedInputs) {
+      // Find label in this wrapper
+      const labelEl = wrapper.querySelector('label, [class*="label"], [class*="Label"]');
+      if (!labelEl) return null;
+      
+      const label = labelEl.textContent?.trim();
+      if (!label || label.length > 100) return null;
+      
+      // Find the input element in this wrapper
+      const input = wrapper.querySelector(`
+        input:not([type="hidden"]):not([type="submit"]):not([type="button"]),
+        textarea,
+        select,
+        [role="combobox"],
+        [role="listbox"],
+        [data-radix-select-trigger],
+        button[data-state]:not([class*="close"]):not([class*="cancel"])
+      `);
+      
+      if (!input || processedInputs.has(input)) return null;
+      if (this.isActionButton(input)) return null;
+      
+      const type = this.detectFieldType(input);
+      return { label, element: input, type };
+    }
+    
+    // Check if an element is an action button (not a form field)
+    isActionButton(el) {
+      if (el.tagName !== 'BUTTON') return false;
+      
+      const text = (el.textContent || '').toLowerCase().trim();
+      const actionPatterns = [
+        'submit', 'save', 'create', 'update', 'delete', 'cancel', 'close',
+        'ok', 'confirm', 'apply', 'done', 'next', 'back', 'previous',
+        'שמור', 'צור', 'עדכן', 'מחק', 'ביטול', 'סגור', 'אישור'
+      ];
+      
+      return actionPatterns.some(p => text.includes(p));
+    }
+    
+    // Detect the semantic type of a form field
+    detectFieldType(el) {
+      // Native input types
+      if (el.tagName === 'INPUT') {
+        return el.type || 'text';
+      }
+      if (el.tagName === 'TEXTAREA') return 'textarea';
+      if (el.tagName === 'SELECT') return 'select';
+      
+      // ARIA roles
+      const role = el.getAttribute('role');
+      if (role === 'combobox' || role === 'listbox') return 'select';
+      if (role === 'slider') return 'slider';
+      if (role === 'spinbutton') return 'number';
+      if (role === 'checkbox') return 'checkbox';
+      if (role === 'radio') return 'radio';
+      if (role === 'switch') return 'switch';
+      
+      // Radix/shadcn patterns
+      if (el.hasAttribute('data-radix-select-trigger')) return 'select';
+      if (el.hasAttribute('data-state') && el.tagName === 'BUTTON') return 'select';
+      
+      // Contenteditable
+      if (el.getAttribute('contenteditable') === 'true') return 'richtext';
+      
+      // Class-based detection
+      const classes = (el.className || '').toString().toLowerCase();
+      if (classes.includes('date') || classes.includes('calendar')) return 'date';
+      if (classes.includes('color')) return 'color';
+      if (classes.includes('slider') || classes.includes('range')) return 'slider';
+      
+      return 'unknown';
+    }
+    
+    // Extract value from any field type
+    extractFieldValue(el, type) {
+      try {
+        switch (type) {
+          case 'checkbox':
+          case 'switch':
+            return el.checked ?? el.getAttribute('data-state') === 'checked' ?? 
+                   el.getAttribute('aria-checked') === 'true';
+          
+          case 'radio':
+            if (el.checked) return el.value;
+            return null;
+          
+          case 'select':
+            // Native select
+            if (el.tagName === 'SELECT') {
+              const opt = el.options?.[el.selectedIndex];
+              return opt ? (opt.text || opt.value) : null;
+            }
+            // Custom select (Radix, etc.) - get displayed text
+            const valueEl = el.querySelector('[data-radix-select-value]') ||
+                           el.querySelector('[class*="value"]') ||
+                           el.querySelector('span:first-child') ||
+                           el;
+            const text = valueEl?.textContent?.trim();
+            // Skip placeholder text
+            if (this.isPlaceholder(text)) return null;
+            return text;
+          
+          case 'textarea':
+          case 'richtext':
+            return el.value || el.textContent?.trim() || null;
+          
+          case 'date':
+            return el.value || el.textContent?.trim() || null;
+          
+          case 'slider':
+          case 'number':
+            return el.value || el.getAttribute('aria-valuenow') || null;
+          
+          default:
+            // Standard input
+            return el.value || null;
+        }
+      } catch (e) {
+        return null;
+      }
+    }
+    
+    // Extract value from native form input
+    extractNativeInputValue(el) {
+      if (el.type === 'checkbox') return el.checked;
+      if (el.type === 'radio') return el.checked ? el.value : null;
+      if (el.tagName === 'SELECT') {
+        const opt = el.options?.[el.selectedIndex];
+        return opt ? (opt.text || opt.value) : null;
+      }
+      return el.value || null;
+    }
+    
+    // Check if text is a placeholder
+    isPlaceholder(text) {
+      if (!text) return true;
+      const placeholders = [
+        'select', 'choose', 'pick', 'בחר', 'בחירה',
+        'select...', 'choose...', 'pick...', 'בחר...',
+        'select an option', 'choose an option',
+        'please select', 'please choose',
+        '--', '---', 'none', 'n/a'
+      ];
+      return placeholders.includes(text.toLowerCase());
+    }
+    
+    // Find label for an element using multiple strategies
+    findLabelForElement(el, scope) {
+      // 1. Explicit label via for attribute
+      if (el.id) {
+        const label = scope.querySelector(`label[for="${el.id}"]`);
+        if (label) return label.textContent?.trim();
+      }
+      
+      // 2. Aria-label
+      const ariaLabel = el.getAttribute('aria-label');
+      if (ariaLabel) return ariaLabel;
+      
+      // 3. Aria-labelledby
+      const labelledBy = el.getAttribute('aria-labelledby');
+      if (labelledBy) {
+        const labelEl = document.getElementById(labelledBy);
+        if (labelEl) return labelEl.textContent?.trim();
+      }
+      
+      // 4. Walk up DOM to find label in parent containers
+      let parent = el.parentElement;
+      for (let i = 0; i < 5 && parent && parent !== scope; i++) {
+        const label = parent.querySelector('label, [class*="label"], [class*="Label"]');
+        if (label && !label.contains(el)) {
+          const text = label.textContent?.trim();
+          if (text && text.length < 50) return text;
+        }
+        parent = parent.parentElement;
+      }
+      
+      // 5. Placeholder as fallback
+      if (el.placeholder) return el.placeholder;
+      
+      // 6. Name attribute as last resort
+      if (el.name) {
+        return el.name
+          .replace(/([A-Z])/g, ' $1')
+          .replace(/[-_]/g, ' ')
+          .trim();
+      }
+      
+      return null;
+    }
+    
+    // Sanitize/anonymize a value
+    sanitizeValue(fieldName, value, anonymizePatterns) {
+      if (value === null || value === undefined) return null;
+          
+          // Anonymize email/phone fields
+      if (anonymizePatterns.test(fieldName) && typeof value === 'string') {
+        if (fieldName.toLowerCase().includes('email') && value.includes('@')) {
+          const [local, domain] = value.split('@');
+          return local.charAt(0) + '***@' + domain;
+        }
+        return '***' + value.slice(-4);
+      }
+      
+      // Truncate long strings
+      if (typeof value === 'string' && value.length > 200) {
+        return value.slice(0, 200) + '...';
+      }
+      
+      return value;
+    }
+
+    // === SEMANTIC SUBMIT BUTTON DETECTION (for React/controlled forms) ===
+    // Detects if a button is a submit-type button using SEMANTIC ANALYSIS
+    // Instead of hardcoding text patterns (fragile), we analyze:
+    // 1. Button position (last/primary in container)
+    // 2. Button styling (primary vs secondary/outline)
+    // 3. Proximity to form inputs
+    // 4. Sibling button patterns (cancel buttons nearby)
+    // 5. Container context (is inside a modal/form-like container with inputs?)
+    isSubmitTypeButton(element) {
+      // === EXPLICIT INDICATORS (always trust these) ===
+      if (element.getAttribute('type') === 'submit' ||
+          element.dataset.action === 'submit' ||
+          element.dataset.type === 'submit' ||
+          element.getAttribute('data-submit') === 'true') {
+        return true;
+      }
+      
+      // === CONTEXT CHECK: Is there a form-like container with inputs? ===
+      const container = element.closest('[role="dialog"]') ||
+                        element.closest('[data-radix-dialog-content]') ||
+                        element.closest('[class*="modal"]') ||
+                        element.closest('[class*="Modal"]') ||
+                        element.closest('[class*="dialog"]') ||
+                        element.closest('[class*="Dialog"]') ||
+                        element.closest('[class*="card"]') ||
+                        element.closest('[class*="Card"]') ||
+                        element.closest('[data-form]') ||
+                        element.closest('form');
+      
+      if (!container) {
+        return false; // Not in a form-like container
+      }
+      
+      // Check if container has form inputs
+      const hasFormInputs = container.querySelector('input:not([type="hidden"]):not([type="submit"]):not([type="button"]), textarea, select, [role="combobox"]');
+      if (!hasFormInputs) {
+        return false; // No form inputs in container - not a form submission
+      }
+      
+      // === SEMANTIC INDICATOR 1: Primary button styling ===
+      const isPrimaryStyled = this.isPrimaryButton(element);
+      
+      // === SEMANTIC INDICATOR 2: Button position (footer/bottom of container) ===
+      const isInFooter = this.isButtonInFooter(element, container);
+      
+      // === SEMANTIC INDICATOR 3: Has cancel/close sibling ===
+      const hasCancelSibling = this.hasCancelSibling(element);
+      
+      // === SEMANTIC INDICATOR 4: Is the rightmost/last button (in LTR) or leftmost (in RTL) ===
+      const isActionPosition = this.isInActionPosition(element);
+      
+      // === SCORING: Combine semantic signals ===
+      let score = 0;
+      
+      if (isPrimaryStyled) score += 3;      // Strong signal
+      if (isInFooter) score += 2;           // Medium signal
+      if (hasCancelSibling) score += 2;     // Medium signal (cancel nearby means this is the action)
+      if (isActionPosition) score += 1;     // Weak signal
+      
+      // Threshold: need at least 3 points to be considered a submit button
+      return score >= 3;
+    }
+    
+    // Check if button has primary/action styling
+    isPrimaryButton(element) {
+      const classes = (element.className || '').toString().toLowerCase();
+      const computedStyle = window.getComputedStyle ? window.getComputedStyle(element) : null;
+      
+      // Check class-based indicators
+      const primaryClassPatterns = [
+        'primary', 'submit', 'action', 'confirm', 'cta',
+        'btn-primary', 'button-primary', 'bg-primary',
+        'filled', 'contained', 'solid'
+      ];
+      
+      const secondaryClassPatterns = [
+        'secondary', 'outline', 'ghost', 'cancel', 'close', 'dismiss',
+        'btn-secondary', 'button-secondary', 'btn-outline', 'btn-ghost',
+        'text-only', 'link', 'tertiary'
+      ];
+      
+      // If has secondary styling, not primary
+      for (const pattern of secondaryClassPatterns) {
+        if (classes.includes(pattern)) {
+          return false;
+        }
+      }
+      
+      // If has primary styling, is primary
+      for (const pattern of primaryClassPatterns) {
+        if (classes.includes(pattern)) {
+          return true;
+        }
+      }
+      
+      // Check computed style: filled background usually indicates primary
+      if (computedStyle) {
+        const bgColor = computedStyle.backgroundColor;
+        const textColor = computedStyle.color;
+        
+        // If background is not transparent/white and has contrast with text, likely primary
+        if (bgColor && 
+            bgColor !== 'transparent' && 
+            bgColor !== 'rgba(0, 0, 0, 0)' &&
+            !bgColor.includes('255, 255, 255') &&
+            !bgColor.includes('rgb(255, 255, 255)')) {
+          return true;
+        }
+      }
+      
+      return false;
+    }
+    
+    // Check if button is in footer/bottom section of container
+    isButtonInFooter(element, container) {
+      // Check if in a footer-like element
+      const footer = element.closest('footer, [class*="footer"], [class*="Footer"], [class*="actions"], [class*="Actions"], [class*="buttons"], [class*="Buttons"]');
+      if (footer && container.contains(footer)) {
+        return true;
+      }
+      
+      // Check if near bottom of container using position
+      try {
+        const containerRect = container.getBoundingClientRect();
+        const elementRect = element.getBoundingClientRect();
+        
+        // If button is in the bottom 30% of the container, consider it "in footer"
+        const containerBottom = containerRect.bottom;
+        const containerHeight = containerRect.height;
+        const elementCenter = elementRect.top + elementRect.height / 2;
+        
+        const bottomThreshold = containerRect.top + (containerHeight * 0.7);
+        return elementCenter > bottomThreshold;
+      } catch (e) {
+        return false;
+      }
+    }
+    
+    // Check if there's a cancel/close button as sibling
+    hasCancelSibling(element) {
+      const parent = element.parentElement;
+      if (!parent) return false;
+      
+      const siblings = parent.querySelectorAll('button, [role="button"], a[class*="button"], a[class*="btn"]');
+      
+      for (const sibling of siblings) {
+        if (sibling === element) continue;
+        
+        const siblingClasses = (sibling.className || '').toString().toLowerCase();
+        const siblingText = (sibling.textContent || '').toLowerCase();
+        
+        // Check if sibling looks like a cancel/close button
+        const cancelIndicators = ['cancel', 'close', 'dismiss', 'secondary', 'outline', 'ghost', 'back', 'nevermind'];
+        
+        for (const indicator of cancelIndicators) {
+          if (siblingClasses.includes(indicator) || siblingText.includes(indicator)) {
+            return true;
+          }
+        }
+        
+        // Check for X/close icon button
+        if (sibling.querySelector('svg') && siblingText.trim() === '') {
+          const ariaLabel = (sibling.getAttribute('aria-label') || '').toLowerCase();
+          if (ariaLabel.includes('close') || ariaLabel.includes('dismiss')) {
+            return true;
+          }
+        }
+      }
+      
+      return false;
+    }
+    
+    // Check if button is in the "action" position (rightmost in LTR, leftmost in RTL)
+    isInActionPosition(element) {
+      const parent = element.parentElement;
+      if (!parent) return false;
+      
+      const siblings = Array.from(parent.querySelectorAll('button, [role="button"]'));
+      if (siblings.length < 2) return true; // Only button, so it's the action
+      
+      const elementIndex = siblings.indexOf(element);
+      
+      // Check document direction
+      const isRTL = document.documentElement.dir === 'rtl' || 
+                    document.body.dir === 'rtl' ||
+                    window.getComputedStyle(document.body).direction === 'rtl';
+      
+      // In LTR: action button is usually last (rightmost)
+      // In RTL: action button is usually first (leftmost)
+      if (isRTL) {
+        return elementIndex === 0;
+      } else {
+        return elementIndex === siblings.length - 1;
+      }
+    }
+
+    // === COLLECT FORM FIELDS FROM SCOPE (for React/controlled forms) ===
+    // Collects all input values from a container (modal, dialog, card, etc.)
+    // Works with React controlled inputs that don't use <form> elements
+    collectFieldsFromScope(scope) {
       const formData = {};
       
       // Sensitive field patterns to skip entirely
@@ -1318,68 +2012,279 @@
       const anonymizePatterns = /email|phone|tel|mobile/i;
       
       try {
-        const elements = form.elements || [];
+        // === STRATEGY 1: Find labeled form field groups ===
+        // Look for common form field wrapper patterns (Label + Input pairs)
+        const fieldGroups = scope.querySelectorAll('[class*="field"], [class*="Field"], [class*="form-group"], [class*="FormGroup"], [class*="input-group"], [class*="InputGroup"], .space-y-2 > div, .gap-2 > div, .grid > div');
         
-        for (let i = 0; i < elements.length; i++) {
-          const el = elements[i];
-          const name = el.name || el.id;
+        for (const group of fieldGroups) {
+          // Find label in this group
+          const labelEl = group.querySelector('label, [class*="label"], [class*="Label"]');
+          if (!labelEl) continue;
           
-          // Skip unnamed fields, buttons, and hidden fields
-          if (!name || el.type === 'submit' || el.type === 'button' || el.type === 'hidden') {
-            continue;
-          }
+          const fieldName = this.cleanFieldName(labelEl.textContent?.trim());
+          if (!fieldName || sensitivePatterns.test(fieldName)) continue;
+          if (formData[fieldName]) continue; // Already have this field
           
-          // Skip sensitive fields entirely
-          if (sensitivePatterns.test(name)) {
-            continue;
-          }
+          // Find input in this group
+          const input = group.querySelector('input, textarea, select, [role="combobox"], button[data-state]');
+          if (!input) continue;
           
-          let value = null;
+          let value = this.extractInputValue(input);
           
-          // Get value based on element type
-          if (el.type === 'checkbox') {
-            value = el.checked;
-          } else if (el.type === 'radio') {
-            if (el.checked) {
-              value = el.value;
-            } else {
-              continue; // Skip unchecked radio buttons
-            }
-          } else if (el.tagName === 'SELECT') {
-            const selected = el.options[el.selectedIndex];
-            value = selected ? (selected.text || selected.value) : null;
-          } else if (el.value) {
-            value = el.value;
-          }
-          
-          // Skip empty values
-          if (value === null || value === '' || value === undefined) {
-            continue;
-          }
-          
-          // Anonymize email/phone fields
-          if (anonymizePatterns.test(name) && typeof value === 'string') {
-            if (name.toLowerCase().includes('email') && value.includes('@')) {
+          if (value !== null && value !== '') {
+            // Anonymize if needed
+            if (anonymizePatterns.test(fieldName) && typeof value === 'string') {
+              if (fieldName.toLowerCase().includes('email') && value.includes('@')) {
               const [local, domain] = value.split('@');
               value = local.charAt(0) + '***@' + domain;
             } else {
-              // Phone/other: show last 4 chars
               value = '***' + value.slice(-4);
+              }
             }
+            formData[fieldName] = value;
           }
-          
-          // Truncate long values
-          if (typeof value === 'string' && value.length > 100) {
-            value = value.slice(0, 100) + '...';
-          }
-          
-          formData[name] = value;
         }
+        
+        // === STRATEGY 2: Direct input collection ===
+        // Find all input elements within the scope
+        const inputs = scope.querySelectorAll('input, textarea, select, [role="combobox"], [role="listbox"], [contenteditable="true"]');
+        
+        for (const el of inputs) {
+          // Get field identifier - prefer label, then name, then id, then placeholder
+          let fieldName = this.getFieldLabel(el, scope) || el.name || el.id || el.placeholder;
+          
+          // Skip if no identifier
+          if (!fieldName) continue;
+          
+          // Clean up field name - make it a clean key
+          fieldName = this.cleanFieldName(fieldName);
+          
+          // Skip if already captured, buttons, hidden inputs, or sensitive
+          if (formData[fieldName]) continue;
+          if (el.type === 'submit' || el.type === 'button' || el.type === 'hidden') continue;
+          if (sensitivePatterns.test(fieldName)) continue;
+          
+          let value = this.extractInputValue(el);
+          
+          if (value !== null && value !== '' && value !== undefined) {
+            // Anonymize if needed
+            if (anonymizePatterns.test(fieldName) && typeof value === 'string') {
+              if (fieldName.toLowerCase().includes('email') && value.includes('@')) {
+                const [local, domain] = value.split('@');
+                value = local.charAt(0) + '***@' + domain;
+              } else {
+                value = '***' + value.slice(-4);
+              }
+            }
+          // Truncate long values
+            if (typeof value === 'string' && value.length > 200) {
+              value = value.slice(0, 200) + '...';
+            }
+            formData[fieldName] = value;
+          }
+        }
+        
+        // === STRATEGY 3: Radix UI Select triggers ===
+        const selectTriggers = scope.querySelectorAll('[data-radix-select-trigger], button[role="combobox"], button[data-state]');
+        for (const trigger of selectTriggers) {
+          const label = this.getFieldLabel(trigger, scope);
+          if (!label) continue;
+          
+          const fieldName = this.cleanFieldName(label);
+          if (formData[fieldName] || sensitivePatterns.test(fieldName)) continue;
+          
+          // Get the displayed value from the trigger
+          const valueSpan = trigger.querySelector('[data-radix-select-value], span:not([class*="icon"])') || trigger;
+          let value = valueSpan?.textContent?.trim();
+          
+          // Skip placeholder values
+          if (value && !['Select...', 'Choose...', 'Select', 'Choose', 'בחר', 'בחר...'].includes(value)) {
+            formData[fieldName] = value;
+          }
+        }
+        
+        // === STRATEGY 4: Date picker inputs ===
+        const datePickers = scope.querySelectorAll('input[type="date"], input[type="datetime-local"], [data-radix-calendar], button[class*="date"], button[class*="Date"], [class*="datepicker"], [class*="DatePicker"]');
+        for (const picker of datePickers) {
+          const label = this.getFieldLabel(picker, scope);
+          if (!label) continue;
+          
+          const fieldName = this.cleanFieldName(label);
+          if (formData[fieldName]) continue;
+          
+          let value = picker.value || picker.textContent?.trim();
+          if (value && value.length > 0) {
+            formData[fieldName] = value;
+          }
+        }
+        
       } catch (e) {
         // Silent fail - return whatever we captured
       }
       
       return Object.keys(formData).length > 0 ? formData : null;
+    }
+    
+    // Extract value from various input types
+    extractInputValue(el) {
+      if (!el) return null;
+      
+      // Checkbox
+      if (el.type === 'checkbox') {
+        return el.checked;
+      }
+      
+      // Radio - only return if checked
+      if (el.type === 'radio') {
+        return el.checked ? el.value : null;
+      }
+      
+      // Native select
+      if (el.tagName === 'SELECT') {
+        const selected = el.options && el.selectedIndex >= 0 ? el.options[el.selectedIndex] : null;
+        return selected ? (selected.text || selected.value) : null;
+      }
+      
+      // Radix UI combobox/select trigger
+      if (el.getAttribute('role') === 'combobox' || el.hasAttribute('data-state')) {
+        const valueSpan = el.querySelector('[data-radix-select-value], span') || el;
+        const value = valueSpan?.textContent?.trim();
+        if (value && !['Select...', 'Choose...', 'Select', 'Choose', 'בחר'].includes(value)) {
+          return value;
+        }
+        return null;
+      }
+      
+      // Contenteditable
+      if (el.getAttribute('contenteditable') === 'true') {
+        return el.textContent?.trim() || null;
+      }
+      
+      // Standard input/textarea
+      if (el.value !== undefined && el.value !== '') {
+        return el.value;
+      }
+      
+      // Button with displayed value (for custom selects)
+      if (el.tagName === 'BUTTON') {
+        const text = el.textContent?.trim();
+        if (text && text.length < 100) {
+          return text;
+        }
+      }
+      
+      return null;
+    }
+
+    // Get the label text for a form field
+    getFieldLabel(element, scope) {
+      // 1. Try associated label via for attribute
+      if (element.id) {
+        const label = scope.querySelector(`label[for="${element.id}"]`);
+        if (label) return label.textContent?.trim();
+      }
+      
+      // 2. Try parent label
+      const parentLabel = element.closest('label');
+      if (parentLabel) {
+        // Get label text without the input's value
+        const clone = parentLabel.cloneNode(true);
+        const inputs = clone.querySelectorAll('input, textarea, select');
+        inputs.forEach(i => i.remove());
+        return clone.textContent?.trim();
+      }
+      
+      // 3. Look in wrapper containers (common in Radix UI / shadcn forms)
+      // Structure: <div class="space-y-2"><Label>Title</Label><Input/></div>
+      let wrapper = element.parentElement;
+      for (let depth = 0; depth < 3 && wrapper && wrapper !== scope; depth++) {
+        // Look for label element in this wrapper
+        const labelInWrapper = wrapper.querySelector('label, [class*="Label"]:not(input):not(textarea):not(select):not(button)');
+        if (labelInWrapper && !labelInWrapper.contains(element)) {
+          const text = labelInWrapper.textContent?.trim();
+          if (text && text.length > 0 && text.length < 50) {
+            return text;
+          }
+        }
+        
+        // Also check for text node or span before the input
+        const children = Array.from(wrapper.children);
+        const elIndex = children.findIndex(c => c === element || c.contains(element));
+        for (let i = 0; i < elIndex; i++) {
+          const child = children[i];
+          if (child.tagName === 'LABEL' || child.tagName === 'SPAN' || 
+              (child.className && (child.className.toString().includes('label') || child.className.toString().includes('Label')))) {
+            const text = child.textContent?.trim();
+            if (text && text.length > 0 && text.length < 50) {
+              return text;
+            }
+          }
+        }
+        
+        wrapper = wrapper.parentElement;
+      }
+      
+      // 4. Look for label-like element before the input (common in forms)
+      const parent = element.parentElement;
+      if (parent) {
+        const prevSibling = element.previousElementSibling;
+        if (prevSibling && (prevSibling.tagName === 'LABEL' || prevSibling.classList?.contains('label'))) {
+          return prevSibling.textContent?.trim();
+        }
+        
+        // Look for label in parent's children before this element
+        const siblings = Array.from(parent.children);
+        const elIndex = siblings.indexOf(element);
+        for (let i = elIndex - 1; i >= 0; i--) {
+          const sib = siblings[i];
+          if (sib.tagName === 'LABEL' || sib.classList?.contains('label') || sib.tagName === 'SPAN') {
+            const text = sib.textContent?.trim();
+            if (text && text.length < 50) return text;
+          }
+        }
+      }
+      
+      // 5. Try aria-label or aria-labelledby
+      if (element.getAttribute('aria-label')) {
+        return element.getAttribute('aria-label');
+      }
+      if (element.getAttribute('aria-labelledby')) {
+        const labelEl = scope.querySelector(`#${element.getAttribute('aria-labelledby')}`);
+        if (labelEl) return labelEl.textContent?.trim();
+      }
+      
+      // 6. Try name attribute (often semantic)
+      if (element.name) {
+        // Convert camelCase/snake_case to readable: 'projectName' -> 'Project Name'
+        return element.name
+          .replace(/([A-Z])/g, ' $1')
+          .replace(/_/g, ' ')
+          .trim()
+          .replace(/^./, c => c.toUpperCase());
+      }
+      
+      // 7. Try placeholder as last resort
+      if (element.placeholder) {
+        return element.placeholder;
+      }
+      
+      return null;
+    }
+
+    // Clean up field name to be a valid key
+    cleanFieldName(name) {
+      if (!name) return '';
+      
+      // Remove required indicator (*) and trim
+      name = name.replace(/\*$/, '').trim();
+      
+      // Remove colon at end
+      name = name.replace(/:$/, '').trim();
+      
+      // Replace spaces with underscores for cleaner keys (optional - can keep spaces)
+      // name = name.replace(/\s+/g, '_').toLowerCase();
+      
+      return name;
     }
 
     getEntryType() {
@@ -1422,8 +2327,11 @@
 
     getButtonType(element) {
       if (element.tagName === 'A') return 'link';
+      const role = element.getAttribute('role');
+      if (role === 'menuitem' || role === 'menuitemcheckbox' || role === 'menuitemradio') return 'menu_item';
+      if (role === 'option') return 'dropdown_option';
+      if (role === 'tab') return 'tab';
       if (element.querySelector('svg') || (element.className && element.className.toString().includes('icon'))) return 'icon';
-      if (element.getAttribute('role') === 'tab') return 'tab';
       return 'button';
     }
 
@@ -1623,14 +2531,14 @@
       })
       .then(response => {
         if (!response.ok) {
-          console.error('[demo-test-apps-2025-12-28-kwlty3h3dti] Analytics flush failed:', response.status);
+          console.error('[demo-test-apps-2026-01-21-153lmddxhta] Analytics flush failed:', response.status);
           // Re-add to queue and persist on failure
         this.eventQueue.unshift(...batch);
           this.saveQueueToStorage();
         }
       })
       .catch(err => {
-        console.error('[demo-test-apps-2025-12-28-kwlty3h3dti] Analytics flush error:', err);
+        console.error('[demo-test-apps-2026-01-21-153lmddxhta] Analytics flush error:', err);
         // Re-add to queue and persist on failure
         this.eventQueue.unshift(...batch);
         this.saveQueueToStorage();
@@ -1641,7 +2549,7 @@
   // Auto-initialize
   if (typeof window !== 'undefined' && !window.analytics) {
     window.analytics = new AnalyticsTracker();
-    console.log('[demo-test-apps-2025-12-28-kwlty3h3dti] ✅ AI-Enhanced Analytics tracker with new event schema initialized');
+    console.log('[demo-test-apps-2026-01-21-153lmddxhta] ✅ AI-Enhanced Analytics tracker with new event schema initialized');
   }
 
   return AnalyticsTracker;
