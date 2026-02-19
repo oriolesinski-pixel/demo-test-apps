@@ -94,9 +94,9 @@ export default async function ActivityPage() {
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Activity Feed</h1>
-        <p className="text-gray-500 dark:text-gray-400 mt-1">
-          See what's happening in your workspace
+        <h1 className="text-[1.75rem] font-bold tracking-tight">Activity Feed</h1>
+        <p className="text-gray-500 dark:text-gray-400 mt-1.5">
+          See what&apos;s happening in your workspace
         </p>
       </div>
 

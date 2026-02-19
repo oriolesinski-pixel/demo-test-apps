@@ -44,19 +44,19 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50/30 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Logo */}
-        <Link href="/" className="flex items-center justify-center gap-2 mb-8">
-          <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-blue-600 to-blue-700 flex items-center justify-center">
+        <Link href="/" className="flex items-center justify-center gap-2.5 mb-8">
+          <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-sm">
             <Zap className="h-6 w-6 text-white" />
           </div>
-          <span className="text-2xl font-bold">TaskFlow</span>
+          <span className="text-[1.4rem] font-bold tracking-tight">TaskFlow</span>
         </Link>
 
-        <Card>
+        <Card className="shadow-lg shadow-gray-200/50 dark:shadow-none border-gray-200/80">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl">Welcome back</CardTitle>
+            <CardTitle className="text-[1.4rem]">Welcome back</CardTitle>
             <CardDescription>
               Sign in to your account to continue
             </CardDescription>

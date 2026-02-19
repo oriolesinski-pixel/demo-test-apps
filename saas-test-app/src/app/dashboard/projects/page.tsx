@@ -42,8 +42,8 @@ export default async function ProjectsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Projects</h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-1">
+          <h1 className="text-[1.75rem] font-bold tracking-tight">Projects</h1>
+          <p className="text-gray-500 dark:text-gray-400 mt-1.5">
             Manage and organize your team&apos;s projects
           </p>
         </div>
@@ -57,7 +57,7 @@ export default async function ProjectsPage() {
 
       {/* Active Projects */}
       <div>
-        <h2 className="text-xl font-semibold mb-4">Active Projects ({activeProjects.length})</h2>
+        <h2 className="text-[1.1rem] font-semibold mb-4">Active Projects ({activeProjects.length})</h2>
         {activeProjects.length > 0 ? (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {activeProjects.map((project: any) => {
@@ -67,11 +67,11 @@ export default async function ProjectsPage() {
 
               return (
                 <Link key={project.id} href={`/dashboard/projects/${project.id}`}>
-                  <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
+                  <Card className="hover:shadow-md transition-all duration-200 cursor-pointer h-full group">
                     <CardHeader>
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex-1 min-w-0">
-                          <CardTitle className="text-lg truncate">{project.name}</CardTitle>
+                          <CardTitle className="text-[1.05rem] truncate group-hover:text-blue-600 transition-colors duration-200">{project.name}</CardTitle>
                           {project.description && (
                             <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-2 mt-2">
                               {project.description}
@@ -92,9 +92,9 @@ export default async function ProjectsPage() {
                               : 'No tasks'}
                           </span>
                         </div>
-                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                        <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-2">
                           <div
-                            className="bg-blue-600 h-2 rounded-full transition-all"
+                            className="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full transition-all duration-500"
                             style={{
                               width: totalTasks > 0
                                 ? `${(doneTasks / totalTasks) * 100}%`

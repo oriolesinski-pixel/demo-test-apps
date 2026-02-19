@@ -218,8 +218,8 @@ export default function TeamPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Team Members</h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-1">
+          <h1 className="text-[1.75rem] font-bold tracking-tight">Team Members</h1>
+          <p className="text-gray-500 dark:text-gray-400 mt-1.5">
             Manage your workspace members and invitations
           </p>
         </div>

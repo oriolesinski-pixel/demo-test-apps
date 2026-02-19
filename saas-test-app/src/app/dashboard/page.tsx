@@ -58,8 +58,8 @@ export default async function DashboardPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-1">
+          <h1 className="text-[1.75rem] font-bold tracking-tight">Dashboard</h1>
+          <p className="text-gray-500 dark:text-gray-400 mt-1.5">
             Welcome back! Here&apos;s an overview of your workspace.
           </p>
         </div>
@@ -81,52 +81,60 @@ export default async function DashboardPage() {
 
       {/* Stats Grid */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
+        <Card className="hover:shadow-md transition-shadow duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Projects</CardTitle>
-            <FolderKanban className="h-4 w-4 text-gray-500" />
+            <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">Active Projects</CardTitle>
+            <div className="h-8 w-8 rounded-lg bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center">
+              <FolderKanban className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{projectCount || 0}</div>
+            <div className="text-[1.65rem] font-bold">{projectCount || 0}</div>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
               Across your workspace
             </p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="hover:shadow-md transition-shadow duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Tasks</CardTitle>
-            <CheckCircle2 className="h-4 w-4 text-gray-500" />
+            <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Tasks</CardTitle>
+            <div className="h-8 w-8 rounded-lg bg-green-50 dark:bg-green-900/30 flex items-center justify-center">
+              <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalTasks || 0}</div>
+            <div className="text-[1.65rem] font-bold">{totalTasks || 0}</div>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
               Assigned to you
             </p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="hover:shadow-md transition-shadow duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending</CardTitle>
-            <Clock className="h-4 w-4 text-gray-500" />
+            <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">Pending</CardTitle>
+            <div className="h-8 w-8 rounded-lg bg-amber-50 dark:bg-amber-900/30 flex items-center justify-center">
+              <Clock className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{pendingTasks || 0}</div>
+            <div className="text-[1.65rem] font-bold">{pendingTasks || 0}</div>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
               Todo tasks
             </p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="hover:shadow-md transition-shadow duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Team Members</CardTitle>
-            <Users className="h-4 w-4 text-gray-500" />
+            <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">Team Members</CardTitle>
+            <div className="h-8 w-8 rounded-lg bg-purple-50 dark:bg-purple-900/30 flex items-center justify-center">
+              <Users className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{teamCount || 0}</div>
+            <div className="text-[1.65rem] font-bold">{teamCount || 0}</div>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
               In your workspace
             </p>
@@ -136,12 +144,12 @@ export default async function DashboardPage() {
 
       {/* Recent Projects */}
       <div>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold">Recent Projects</h2>
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="text-[1.15rem] font-semibold">Recent Projects</h2>
           <Link href="/dashboard/projects">
-            <Button variant="ghost" size="sm">
+            <Button variant="ghost" size="sm" className="text-gray-500 hover:text-gray-700">
               View all
-              <ArrowRight className="ml-2 h-4 w-4" />
+              <ArrowRight className="ml-1.5 h-4 w-4" />
             </Button>
           </Link>
         </div>
@@ -155,11 +163,11 @@ export default async function DashboardPage() {
 
               return (
                 <Link key={project.id} href={`/dashboard/projects/${project.id}`}>
-                  <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
+                  <Card className="hover:shadow-md transition-all duration-200 cursor-pointer h-full group">
                     <CardHeader>
                       <div className="flex items-start justify-between">
-                        <CardTitle className="text-lg">{project.name}</CardTitle>
-                        <Badge variant="secondary">{totalProjectTasks} tasks</Badge>
+                        <CardTitle className="text-[1.05rem] group-hover:text-blue-600 transition-colors duration-200">{project.name}</CardTitle>
+                        <Badge variant="secondary" className="text-[0.7rem]">{totalProjectTasks} tasks</Badge>
                       </div>
                       {project.description && (
                         <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-2 mt-2">
@@ -176,9 +184,9 @@ export default async function DashboardPage() {
                             : '0%'}
                         </span>
                       </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
+                      <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-2 mt-2">
                         <div
-                          className="bg-blue-600 h-2 rounded-full transition-all"
+                          className="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full transition-all duration-500"
                           style={{
                             width: totalProjectTasks > 0
                               ? `${(doneTasks / totalProjectTasks) * 100}%`
@@ -193,11 +201,13 @@ export default async function DashboardPage() {
             })}
           </div>
         ) : (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-12">
-              <FolderKanban className="h-12 w-12 text-gray-400 mb-4" />
-              <h3 className="text-lg font-medium mb-2">No projects yet</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 text-center max-w-sm">
+          <Card className="border-dashed">
+            <CardContent className="flex flex-col items-center justify-center py-14">
+              <div className="h-14 w-14 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-4">
+                <FolderKanban className="h-7 w-7 text-gray-400" />
+              </div>
+              <h3 className="text-lg font-semibold mb-2">No projects yet</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-5 text-center max-w-sm">
                 Get started by creating your first project to organize your work.
               </p>
               <Link href="/dashboard/projects/new">

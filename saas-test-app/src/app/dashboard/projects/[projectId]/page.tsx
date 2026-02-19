@@ -367,7 +367,7 @@ export default function ProjectDetailPage() {
         <div className="flex items-start justify-between">
           <div>
             <div className="flex items-center gap-3">
-              <h1 className="text-3xl font-bold tracking-tight">{project.name}</h1>
+              <h1 className="text-[1.75rem] font-bold tracking-tight">{project.name}</h1>
               {project.status === 'archived' && (
                 <Badge variant="secondary">Archived</Badge>
               )}
@@ -409,21 +409,21 @@ export default function ProjectDetailPage() {
 
         {/* Stats */}
         <div className="grid grid-cols-3 gap-4 mt-6">
-          <Card>
+          <Card className="hover:shadow-md transition-shadow duration-200">
             <CardContent className="pt-6">
-              <div className="text-2xl font-bold">{todoTasks.length}</div>
+              <div className="text-[1.5rem] font-bold">{todoTasks.length}</div>
               <div className="text-sm text-gray-500">Todo</div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="hover:shadow-md transition-shadow duration-200">
             <CardContent className="pt-6">
-              <div className="text-2xl font-bold">{inProgressTasks.length}</div>
+              <div className="text-[1.5rem] font-bold text-blue-600">{inProgressTasks.length}</div>
               <div className="text-sm text-gray-500">In Progress</div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="hover:shadow-md transition-shadow duration-200">
             <CardContent className="pt-6">
-              <div className="text-2xl font-bold">{doneTasks.length}</div>
+              <div className="text-[1.5rem] font-bold text-green-600">{doneTasks.length}</div>
               <div className="text-sm text-gray-500">Done</div>
             </CardContent>
           </Card>
@@ -438,18 +438,18 @@ export default function ProjectDetailPage() {
 
           return (
             <div key={status}>
-              <div className="flex items-center gap-2 mb-4">
+              <div className="flex items-center gap-2 mb-4 pb-3 border-b">
                 <StatusIcon className={cn('h-5 w-5', statusConfig[status].color)} />
-                <h3 className="font-semibold">{statusConfig[status].label}</h3>
-                <Badge variant="secondary" className="ml-auto">{statusTasks.length}</Badge>
+                <h3 className="font-semibold text-[0.95rem]">{statusConfig[status].label}</h3>
+                <Badge variant="secondary" className="ml-auto text-[0.7rem]">{statusTasks.length}</Badge>
               </div>
 
               <div className="space-y-3">
                 {statusTasks.map((task) => (
-                  <Card key={task.id} className="hover:shadow-md transition-shadow">
+                  <Card key={task.id} className="hover:shadow-md transition-all duration-200">
                     <CardContent className="p-4">
                       <div className="flex items-start justify-between gap-2 mb-2">
-                        <h4 className="font-medium text-sm flex-1">{task.title}</h4>
+                        <h4 className="font-medium text-[0.875rem] flex-1">{task.title}</h4>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" size="icon" className="h-6 w-6">
@@ -513,7 +513,7 @@ export default function ProjectDetailPage() {
                 ))}
 
                 {statusTasks.length === 0 && (
-                  <div className="text-center py-8 text-sm text-gray-400 border-2 border-dashed rounded-lg">
+                  <div className="text-center py-10 text-sm text-gray-400 border-2 border-dashed rounded-xl bg-gray-50/50 dark:bg-gray-800/30">
                     No {statusConfig[status].label.toLowerCase()} tasks
                   </div>
                 )}

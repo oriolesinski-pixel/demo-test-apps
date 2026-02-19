@@ -66,8 +66,8 @@ export default function SignupPage() {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50/30 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md shadow-lg shadow-gray-200/50 dark:shadow-none border-gray-200/80">
           <CardContent className="pt-6 text-center">
             <div className="h-16 w-16 rounded-full bg-green-100 dark:bg-green-900/50 flex items-center justify-center mx-auto mb-4">
               <CheckCircle2 className="h-8 w-8 text-green-600 dark:text-green-400" />
@@ -84,19 +84,19 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50/30 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Logo */}
-        <Link href="/" className="flex items-center justify-center gap-2 mb-8">
-          <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-blue-600 to-blue-700 flex items-center justify-center">
+        <Link href="/" className="flex items-center justify-center gap-2.5 mb-8">
+          <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-sm">
             <Zap className="h-6 w-6 text-white" />
           </div>
-          <span className="text-2xl font-bold">TaskFlow</span>
+          <span className="text-[1.4rem] font-bold tracking-tight">TaskFlow</span>
         </Link>
 
-        <Card>
+        <Card className="shadow-lg shadow-gray-200/50 dark:shadow-none border-gray-200/80">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl">Create your account</CardTitle>
+            <CardTitle className="text-[1.4rem]">Create your account</CardTitle>
             <CardDescription>
               Get started with TaskFlow for free
             </CardDescription>

@@ -52,15 +52,15 @@ export default function PricingPage() {
   ]
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-purple-50/20 dark:from-gray-900 dark:to-gray-800">
       {/* Header */}
-      <header className="border-b bg-white/50 backdrop-blur-sm dark:bg-gray-900/50">
+      <header className="border-b border-gray-200/60 bg-white/70 backdrop-blur-md dark:bg-gray-900/70 sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-600 to-blue-700 flex items-center justify-center">
+          <Link href="/" className="flex items-center gap-2.5">
+            <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-sm">
               <Zap className="h-5 w-5 text-white" />
             </div>
-            <span className="text-xl font-bold">TaskFlow</span>
+            <span className="text-[1.15rem] font-bold tracking-tight">TaskFlow</span>
           </Link>
           <div className="flex items-center gap-3">
             <Link href="/login">
@@ -77,14 +77,14 @@ export default function PricingPage() {
       <main className="container mx-auto px-4 py-16">
         {/* Hero Section */}
         <div className="text-center mb-12">
-          <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">
+          <h1 className="text-[2.25rem] md:text-[2.75rem] font-bold tracking-tight mb-4 leading-[1.1]">
             Pricing Plans That Scale
             <br />
             <span className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
               With Your Team
             </span>
           </h1>
-          <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
+          <p className="text-[1.1rem] text-gray-600 dark:text-gray-300 max-w-2xl mx-auto leading-relaxed">
             Choose the perfect plan for your needs. Upgrade or downgrade anytime.
           </p>
         </div>
@@ -269,8 +269,8 @@ export default function PricingPage() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t mt-20 py-8 text-center text-gray-600 dark:text-gray-400">
-        <p>© 2025 TaskFlow. Built for demo purposes.</p>
+      <footer className="border-t border-gray-200/60 mt-20 py-8 text-center text-gray-500 dark:text-gray-400">
+        <p>&copy; 2026 TaskFlow. Built for demo purposes.</p>
         <div className="flex items-center justify-center gap-4 mt-4 text-sm">
           <Link href="/pricing" className="hover:text-foreground">Pricing</Link>
           <span>•</span>

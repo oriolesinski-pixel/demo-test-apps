@@ -9,6 +9,14 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ["var(--font-inter)", "system-ui", "sans-serif"],
+      },
+      fontSize: {
+        xs: ["0.8rem", { lineHeight: "1.15rem" }],
+        sm: ["0.875rem", { lineHeight: "1.3rem" }],
+        base: ["0.9375rem", { lineHeight: "1.45rem" }],
+      },
       colors: {
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",

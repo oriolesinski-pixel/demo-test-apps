@@ -160,8 +160,8 @@ export default function SettingsPage() {
   return (
     <div className="space-y-8 max-w-4xl">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
-        <p className="text-gray-500 dark:text-gray-400 mt-1">
+        <h1 className="text-[1.75rem] font-bold tracking-tight">Settings</h1>
+        <p className="text-gray-500 dark:text-gray-400 mt-1.5">
           Manage your account and workspace preferences
         </p>
       </div>
