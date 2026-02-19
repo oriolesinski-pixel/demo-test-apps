@@ -9,7 +9,6 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
-import { Alert, AlertDescription } from '@/components/ui/alert'
 import { ArrowLeft, ArrowRight, CreditCard, Lock, Loader2, CheckCircle2 } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'sonner'
@@ -21,22 +20,22 @@ function CheckoutContent() {
   const router = useRouter()
   const supabase = createClient()
   
-  const [step, setStep] = useState(1)
+  const [step, setStep] = useState(2)
   const [processing, setProcessing] = useState(false)
   
   // Plan details from URL
   const plan = searchParams.get('plan') || 'premium'
   const cycle = (searchParams.get('cycle') || 'monthly') as 'monthly' | 'annual'
   
-  // Form state
-  const [cardNumber, setCardNumber] = useState('')
-  const [expiry, setExpiry] = useState('')
-  const [cvv, setCvv] = useState('')
-  const [cardholderName, setCardholderName] = useState('')
-  const [billingAddress, setBillingAddress] = useState('')
-  const [city, setCity] = useState('')
-  const [state, setState] = useState('')
-  const [zip, setZip] = useState('')
+  // Form state - pre-filled for demo
+  const [cardNumber, setCardNumber] = useState('•••• •••• •••• 4242')
+  const [expiry, setExpiry] = useState('12/28')
+  const [cvv, setCvv] = useState('•••')
+  const [cardholderName, setCardholderName] = useState('John Doe')
+  const [billingAddress, setBillingAddress] = useState('123 Main St')
+  const [city, setCity] = useState('San Francisco')
+  const [state, setState] = useState('CA')
+  const [zip, setZip] = useState('94102')
 
   // Calculate pricing
   const basePrice = cycle === 'monthly' 
@@ -293,28 +292,22 @@ function CheckoutContent() {
                   <CardTitle>Payment Information</CardTitle>
                   <CardDescription>
                     <Lock className="inline h-3 w-3 mr-1" />
-                    Your payment information is encrypted and secure (Mock)
+                    Your payment information is encrypted and secure
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <Alert className="mb-6 bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800">
-                    <AlertDescription className="text-sm">
-                      <strong>Test Mode:</strong> This is a demo. No real payment will be processed.
-                      Use any test card: 4242 4242 4242 4242
-                    </AlertDescription>
-                  </Alert>
-
                   <form onSubmit={handleCompleteCheckout} className="space-y-6">
                     <div className="space-y-2">
                       <Label htmlFor="card-number">Card Number</Label>
-                      <Input
-                        id="card-number"
-                        placeholder="4242 4242 4242 4242"
-                        value={cardNumber}
-                        onChange={(e) => setCardNumber(formatCardNumber(e.target.value))}
-                        maxLength={19}
-                        required
-                      />
+                      <div className="relative">
+                        <Input
+                          id="card-number"
+                          value={cardNumber}
+                          readOnly
+                          className="bg-gray-50 dark:bg-gray-800 pl-10 tracking-wider"
+                        />
+                        <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
@@ -322,23 +315,18 @@ function CheckoutContent() {
                         <Label htmlFor="expiry">Expiry Date</Label>
                         <Input
                           id="expiry"
-                          placeholder="MM/YY"
                           value={expiry}
-                          onChange={(e) => setExpiry(formatExpiry(e.target.value))}
-                          maxLength={5}
-                          required
+                          readOnly
+                          className="bg-gray-50 dark:bg-gray-800"
                         />
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="cvv">CVV</Label>
                         <Input
                           id="cvv"
-                          placeholder="123"
-                          type="password"
                           value={cvv}
-                          onChange={(e) => setCvv(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                          maxLength={4}
-                          required
+                          readOnly
+                          className="bg-gray-50 dark:bg-gray-800 tracking-widest"
                         />
                       </div>
                     </div>
@@ -347,10 +335,9 @@ function CheckoutContent() {
                       <Label htmlFor="cardholder">Cardholder Name</Label>
                       <Input
                         id="cardholder"
-                        placeholder="John Doe"
                         value={cardholderName}
                         onChange={(e) => setCardholderName(e.target.value)}
-                        required
+                        className="bg-gray-50 dark:bg-gray-800"
                       />
                     </div>
 
@@ -363,10 +350,9 @@ function CheckoutContent() {
                         <Label htmlFor="address">Street Address</Label>
                         <Input
                           id="address"
-                          placeholder="123 Main St"
                           value={billingAddress}
-                          onChange={(e) => setBillingAddress(e.target.value)}
-                          required
+                          readOnly
+                          className="bg-gray-50 dark:bg-gray-800"
                         />
                       </div>
 
@@ -375,32 +361,27 @@ function CheckoutContent() {
                           <Label htmlFor="city">City</Label>
                           <Input
                             id="city"
-                            placeholder="San Francisco"
                             value={city}
-                            onChange={(e) => setCity(e.target.value)}
-                            required
+                            readOnly
+                            className="bg-gray-50 dark:bg-gray-800"
                           />
                         </div>
                         <div className="space-y-2">
                           <Label htmlFor="state">State</Label>
                           <Input
                             id="state"
-                            placeholder="CA"
                             value={state}
-                            onChange={(e) => setState(e.target.value)}
-                            maxLength={2}
-                            required
+                            readOnly
+                            className="bg-gray-50 dark:bg-gray-800"
                           />
                         </div>
                         <div className="space-y-2">
                           <Label htmlFor="zip">ZIP Code</Label>
                           <Input
                             id="zip"
-                            placeholder="94102"
                             value={zip}
-                            onChange={(e) => setZip(e.target.value.replace(/\D/g, '').slice(0, 5))}
-                            maxLength={5}
-                            required
+                            readOnly
+                            className="bg-gray-50 dark:bg-gray-800"
                           />
                         </div>
                       </div>
